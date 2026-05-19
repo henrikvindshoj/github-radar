@@ -20,15 +20,15 @@ export function useAllPullRequests(
     queries: repos.map((repo) => {
       const key = repoKey(repo);
       const isDisabled = disabledKeys?.has(key) ?? false;
-      const refetchInterval =
-        isDisabled || intervalMs === null ? (false as const) : intervalMs;
+      const autoRefreshOn = !isDisabled && intervalMs !== null;
+      const refetchInterval = autoRefreshOn ? intervalMs : (false as const);
       return {
         queryKey: ["repo-prs", repo.owner, repo.name, token ? "auth" : "anon"],
         queryFn: () => fetchRepoPullRequests(repo.owner, repo.name),
         enabled: Boolean(token) && !isDisabled,
         refetchInterval,
         refetchIntervalInBackground: false,
-        refetchOnWindowFocus: !isDisabled,
+        refetchOnWindowFocus: autoRefreshOn,
         staleTime: 30_000,
         retry: 1,
       };
