@@ -1,6 +1,6 @@
 import { ExternalLink, AlertOctagon, Loader2, Users } from "lucide-react";
 import type { RepoQuery } from "../hooks/usePullRequests";
-import { isTeamMember, matchesFilters, type Filters } from "../lib/filters";
+import { matchesFilters, type Filters } from "../lib/filters";
 import { PrCard } from "./PrCard";
 import { EmptyState } from "./EmptyState";
 import { repoKey } from "../config/schema";
@@ -17,13 +17,8 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
   const repoUrl = `https://github.com/${repo.owner}/${repo.name}`;
 
   const allPrs = query.data?.pullRequests.nodes ?? [];
-  const teamPrs = repo.teamMembers
-    ? allPrs.filter((pr) => isTeamMember(pr, repo.teamMembers!))
-    : allPrs;
-  const filteredPrs = teamPrs.filter((pr) =>
-    matchesFilters(pr, filters, viewer),
-  );
-  const isCollapsed = query.isSuccess && teamPrs.length === 0;
+  const filteredPrs = allPrs.filter((pr) => matchesFilters(pr, filters, viewer));
+  const isCollapsed = query.isSuccess && allPrs.length === 0;
 
   return (
     <section className={isCollapsed ? "" : "space-y-3"}>
@@ -51,9 +46,9 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
         )}
         <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto tabular-nums">
           {query.isSuccess
-            ? filteredPrs.length === teamPrs.length
-              ? `${teamPrs.length} open`
-              : `${filteredPrs.length} / ${teamPrs.length}`
+            ? filteredPrs.length === allPrs.length
+              ? `${allPrs.length} open`
+              : `${filteredPrs.length} / ${allPrs.length}`
             : ""}
         </span>
       </header>
@@ -86,7 +81,7 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
         </div>
       )}
 
-      {query.isSuccess && teamPrs.length > 0 && filteredPrs.length === 0 && (
+      {query.isSuccess && allPrs.length > 0 && filteredPrs.length === 0 && (
         <EmptyState
           title="No PRs match the current filters"
           description="Try clearing the search or toggles."

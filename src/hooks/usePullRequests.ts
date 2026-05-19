@@ -1,5 +1,9 @@
 import { useQueries, type UseQueryResult } from "@tanstack/react-query";
-import { fetchRepoPullRequests, type RepoPullRequests } from "../lib/github";
+import {
+  fetchRepoPullRequests,
+  fetchTeamRepoPullRequests,
+  type RepoPullRequests,
+} from "../lib/github";
 import { useToken } from "../lib/token";
 import { useRefreshInterval } from "../lib/refreshInterval";
 import { repoKey, type Repo } from "../config/schema";
@@ -7,6 +11,11 @@ import { repoKey, type Repo } from "../config/schema";
 export interface RepoQuery {
   repo: Repo;
   query: UseQueryResult<RepoPullRequests, Error>;
+}
+
+function teamCacheKey(repo: Repo): string | null {
+  if (!repo.teamMembers) return null;
+  return [...repo.teamMembers].sort().join(",");
 }
 
 export function useAllPullRequests(
@@ -22,9 +31,21 @@ export function useAllPullRequests(
       const isDisabled = disabledKeys?.has(key) ?? false;
       const autoRefreshOn = !isDisabled && intervalMs !== null;
       const refetchInterval = autoRefreshOn ? intervalMs : (false as const);
+      const teamKey = teamCacheKey(repo);
       return {
-        queryKey: ["repo-prs", repo.owner, repo.name, token ? "auth" : "anon"],
-        queryFn: () => fetchRepoPullRequests(repo.owner, repo.name),
+        queryKey: [
+          "repo-prs",
+          repo.owner,
+          repo.name,
+          teamKey,
+          token ? "auth" : "anon",
+        ],
+        queryFn: () =>
+          repo.teamMembers
+            ? fetchTeamRepoPullRequests(repo.owner, repo.name, [
+                ...repo.teamMembers,
+              ])
+            : fetchRepoPullRequests(repo.owner, repo.name),
         enabled: Boolean(token) && !isDisabled,
         refetchInterval,
         refetchIntervalInBackground: false,

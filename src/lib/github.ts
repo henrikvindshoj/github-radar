@@ -180,3 +180,80 @@ export async function fetchRepoPullRequests(
   }
   return data.repository;
 }
+
+const TEAM_REPO_PRS_QUERY = /* GraphQL */ `
+  query TeamRepoPRs($q: String!, $first: Int!) {
+    search(query: $q, type: ISSUE, first: $first) {
+      nodes {
+        __typename
+        ... on PullRequest {
+          id
+          number
+          title
+          url
+          isDraft
+          createdAt
+          updatedAt
+          author {
+            login
+            avatarUrl
+          }
+          headRefName
+          baseRefName
+          mergeable
+          reviewDecision
+          additions
+          deletions
+          commits(last: 1) {
+            nodes {
+              commit {
+                statusCheckRollup {
+                  state
+                }
+              }
+            }
+          }
+          comments {
+            totalCount
+          }
+        }
+      }
+    }
+  }
+`;
+
+const TEAM_SEARCH_PAGE_SIZE = 50;
+
+export async function fetchTeamRepoPullRequests(
+  owner: string,
+  name: string,
+  members: readonly string[],
+): Promise<RepoPullRequests> {
+  const repoSummary: Pick<RepoPullRequests, "nameWithOwner" | "url"> = {
+    nameWithOwner: `${owner}/${name}`,
+    url: `https://github.com/${owner}/${name}`,
+  };
+  if (members.length === 0) {
+    return { ...repoSummary, pullRequests: { nodes: [] } };
+  }
+  const q = [
+    `repo:${owner}/${name}`,
+    "is:pr",
+    "is:open",
+    "sort:updated-desc",
+    ...members.map((m) => `author:${m}`),
+  ].join(" ");
+  type SearchNode = (PullRequestNode & { __typename: "PullRequest" }) | { __typename: string };
+  const data = await graphql<{ search: { nodes: SearchNode[] } }>(
+    TEAM_REPO_PRS_QUERY,
+    { q, first: TEAM_SEARCH_PAGE_SIZE },
+  );
+  const nodes = data.search.nodes.filter(
+    (n): n is PullRequestNode & { __typename: "PullRequest" } =>
+      n.__typename === "PullRequest",
+  );
+  return {
+    ...repoSummary,
+    pullRequests: { nodes },
+  };
+}

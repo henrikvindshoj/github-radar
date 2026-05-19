@@ -1,15 +1,6 @@
 import type { PullRequestNode } from "./github";
 import { deriveStatus } from "./status";
 
-export function isTeamMember(
-  pr: PullRequestNode,
-  members: ReadonlySet<string>,
-): boolean {
-  const login = pr.author?.login?.toLowerCase();
-  if (!login) return false;
-  return members.has(login);
-}
-
 export interface Filters {
   search: string;
   hideDrafts: boolean;

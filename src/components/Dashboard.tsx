@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAllPullRequests, type RepoQuery } from "../hooks/usePullRequests";
 import { groups, repos, repoKey } from "../config/schema";
-import { isTeamMember, type Filters } from "../lib/filters";
+import type { Filters } from "../lib/filters";
 import { useCollapsedGroups } from "../lib/collapsedGroups";
 import { RepoSection } from "./RepoSection";
 
@@ -115,10 +115,7 @@ function hasContentToRender(entry: RepoQuery): boolean {
   const q = entry.query;
   if (q.isPending || q.isError) return true;
   if (q.isSuccess) {
-    const all = q.data?.pullRequests.nodes ?? [];
-    const team = entry.repo.teamMembers;
-    const visible = team ? all.filter((pr) => isTeamMember(pr, team)) : all;
-    return visible.length > 0;
+    return (q.data?.pullRequests.nodes.length ?? 0) > 0;
   }
   return true;
 }
