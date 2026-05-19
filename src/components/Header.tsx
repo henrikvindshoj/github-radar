@@ -1,6 +1,7 @@
 import { formatDistanceToNowStrict } from "date-fns";
-import { RefreshCw, Settings, Loader2, Radar } from "lucide-react";
+import { Settings, Radar } from "lucide-react";
 import { useEffect, useState } from "react";
+import { RefreshControl } from "./RefreshControl";
 
 interface HeaderProps {
   viewer: string | null;
@@ -52,25 +53,12 @@ export function Header({
             Updated {updatedLabel}
           </span>
 
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isFetching}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
-            title="Refresh all repos now"
-          >
-            {isFetching ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
-            )}
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
+          <RefreshControl isFetching={isFetching} onRefresh={onRefresh} />
 
           <button
             type="button"
             onClick={onOpenSettings}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 text-xs font-medium leading-none shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
             title={viewer ? `Signed in as ${viewer}` : "Configure token"}
           >
             <Settings className="h-3.5 w-3.5" />
