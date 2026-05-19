@@ -1,6 +1,6 @@
-import { ExternalLink, AlertOctagon, Loader2 } from "lucide-react";
+import { ExternalLink, AlertOctagon, Loader2, Users } from "lucide-react";
 import type { RepoQuery } from "../hooks/usePullRequests";
-import { matchesFilters, type Filters } from "../lib/filters";
+import { isTeamMember, matchesFilters, type Filters } from "../lib/filters";
 import { PrCard } from "./PrCard";
 import { EmptyState } from "./EmptyState";
 import { repoKey } from "../config/schema";
@@ -17,8 +17,13 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
   const repoUrl = `https://github.com/${repo.owner}/${repo.name}`;
 
   const allPrs = query.data?.pullRequests.nodes ?? [];
-  const filteredPrs = allPrs.filter((pr) => matchesFilters(pr, filters, viewer));
-  const isCollapsed = query.isSuccess && allPrs.length === 0;
+  const teamPrs = repo.teamMembers
+    ? allPrs.filter((pr) => isTeamMember(pr, repo.teamMembers!))
+    : allPrs;
+  const filteredPrs = teamPrs.filter((pr) =>
+    matchesFilters(pr, filters, viewer),
+  );
+  const isCollapsed = query.isSuccess && teamPrs.length === 0;
 
   return (
     <section className={isCollapsed ? "" : "space-y-3"}>
@@ -32,14 +37,23 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
           <span className="font-mono">{key}</span>
           <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity" />
         </a>
+        {repo.team && (
+          <span
+            className="pill bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            title={`Only PRs by members of team "${repo.team}" are shown`}
+          >
+            <Users className="h-3 w-3" />
+            <span>team: {repo.team}</span>
+          </span>
+        )}
         {query.isFetching && (
           <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" aria-label="refreshing" />
         )}
         <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto tabular-nums">
           {query.isSuccess
-            ? filteredPrs.length === allPrs.length
-              ? `${allPrs.length} open`
-              : `${filteredPrs.length} / ${allPrs.length}`
+            ? filteredPrs.length === teamPrs.length
+              ? `${teamPrs.length} open`
+              : `${filteredPrs.length} / ${teamPrs.length}`
             : ""}
         </span>
       </header>
@@ -72,7 +86,7 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
         </div>
       )}
 
-      {query.isSuccess && allPrs.length > 0 && filteredPrs.length === 0 && (
+      {query.isSuccess && teamPrs.length > 0 && filteredPrs.length === 0 && (
         <EmptyState
           title="No PRs match the current filters"
           description="Try clearing the search or toggles."
