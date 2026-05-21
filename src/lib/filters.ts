@@ -6,6 +6,7 @@ export interface Filters {
   hideDrafts: boolean;
   onlyMine: boolean;
   failingOnly: boolean;
+  needsReview: boolean;
 }
 
 export const defaultFilters: Filters = {
@@ -13,6 +14,7 @@ export const defaultFilters: Filters = {
   hideDrafts: false,
   onlyMine: false,
   failingOnly: false,
+  needsReview: false,
 };
 
 export function matchesFilters(
@@ -30,6 +32,10 @@ export function matchesFilters(
     if (status.overall !== "failure" && status.overall !== "changes_requested") {
       return false;
     }
+  }
+  if (filters.needsReview) {
+    if (pr.isDraft) return false;
+    if (pr.reviewDecision !== "REVIEW_REQUIRED") return false;
   }
   if (filters.search.trim().length > 0) {
     const q = filters.search.trim().toLowerCase();

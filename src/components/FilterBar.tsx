@@ -78,6 +78,12 @@ export function FilterBar({ filters, onChange, viewerKnown }: FilterBarProps) {
         onToggle={() => set({ failingOnly: !filters.failingOnly })}
         title="Show only PRs with failing checks or changes requested"
       />
+      <Toggle
+        label="Needs review"
+        active={filters.needsReview}
+        onToggle={() => set({ needsReview: !filters.needsReview })}
+        title="Show only open PRs still waiting on required reviewers"
+      />
     </div>
   );
 }
