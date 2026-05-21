@@ -1,53 +1,67 @@
-[
-  {
-    "name": "user-core",
-    "repos": [
-      { "owner": "vippsas", "name": "onboarding" },
-      { "owner": "vippsas", "name": "person" },
-      { "owner": "vippsas", "name": "user" },
-      { "owner": "vippsas", "name": "youngster" },
-      { "owner": "vippsas", "name": "user-vaap-synchronizer" },
-      { "owner": "vippsas", "name": "mobilepay-user-customerid-lookup" }
+{
+  "teams": {
+    "Team Users and eMoney": [
+      "henrikvindshoj",
+      "VMChristofferBech",
+      "MariusHBovbjerg",
+      "jenspo",
+      "Tulstrup",
+      "HuynhNikolaj",
+      "VmPeter"      
     ]
   },
-  {
-    "name": "cup",
-    "repos": [
-      { "owner": "vippsas", "name": "minimal-framework" },
-      { "owner": "vippsas", "name": "worker-management" },
-      { "owner": "vippsas", "name": "box" },
-      { "owner": "vippsas", "name": "vm-balance" },
-      { "owner": "vippsas", "name": "vouchers" },
-      { "owner": "vippsas", "name": "vm-shared-emailservice" },
-      { "owner": "vippsas", "name": "user-referrals" }
-    ]
-  },
-  {
-    "name": "test-user",
-    "repos": [
-      { "owner": "vippsas", "name": "test-user-flows" },
-      { "owner": "vippsas", "name": "test-user-data" },
-      { "owner": "vippsas", "name": "test-user-tessa" },
-      { "owner": "vippsas", "name": "test-data-generator" }
-    ]
-  },
-  {
-    "name": "people-registry",
-    "repos": [
-      { "owner": "vippsas", "name": "people-registry" },
-      { "owner": "vippsas", "name": "dk-cpr-registry" },
-      { "owner": "vippsas", "name": "bisnode-registry" },
-      { "owner": "vippsas", "name": "no-folkeregister-registry" }
-    ]
-  },
-  {
-    "name": "user-core-nuget",
-    "repos": [
-      { "owner": "vippsas", "name": "vm-shared-logging" },
-      { "owner": "vippsas", "name": "user-web-application" },
-      { "owner": "vippsas", "name": "user-hangfire" },
-      { "owner": "vippsas", "name": "user-nin-calculator" },
-      { "owner": "vippsas", "name": "user-eventhub" }
-    ]
-  }
-]
+  "groups": [
+    {
+      "name": "user-core",
+      "repos": [
+        { "owner": "vippsas", "name": "onboarding" },
+        { "owner": "vippsas", "name": "person" },
+        { "owner": "vippsas", "name": "user" },
+        { "owner": "vippsas", "name": "youngster" },
+        { "owner": "vippsas", "name": "vippsere", "team": "Team Users and eMoney" },
+        { "owner": "vippsas", "name": "user-vaap-synchronizer" },
+        { "owner": "vippsas", "name": "mobilepay-user-customerid-lookup" }
+      ]
+    },
+    {
+      "name": "cup",
+      "repos": [
+        { "owner": "vippsas", "name": "minimal-framework" },
+        { "owner": "vippsas", "name": "worker-management" },
+        { "owner": "vippsas", "name": "box" },
+        { "owner": "vippsas", "name": "vm-balance" },
+        { "owner": "vippsas", "name": "vouchers" },
+        { "owner": "vippsas", "name": "vm-shared-emailservice" },
+        { "owner": "vippsas", "name": "user-referrals" }
+      ]
+    },
+    {
+      "name": "test-user",
+      "repos": [
+        { "owner": "vippsas", "name": "test-user-flows" },
+        { "owner": "vippsas", "name": "test-user-data" },
+        { "owner": "vippsas", "name": "test-user-tessa" },
+        { "owner": "vippsas", "name": "test-data-generator" }
+      ]
+    },
+    {
+      "name": "people-registry",
+      "repos": [
+        { "owner": "vippsas", "name": "people-registry" },
+        { "owner": "vippsas", "name": "dk-cpr-registry" },
+        { "owner": "vippsas", "name": "bisnode-registry" },
+        { "owner": "vippsas", "name": "no-folkeregister-registry" }
+      ]
+    },
+    {
+      "name": "user-core-nuget",
+      "repos": [
+        { "owner": "vippsas", "name": "vm-shared-logging" },
+        { "owner": "vippsas", "name": "user-web-application" },
+        { "owner": "vippsas", "name": "user-hangfire" },
+        { "owner": "vippsas", "name": "user-nin-calculator" },
+        { "owner": "vippsas", "name": "user-eventhub" }
+      ]
+    }
+  ]
+}
