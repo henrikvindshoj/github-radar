@@ -138,7 +138,7 @@ export function PipelineRepoSection({
       )}
 
       {query.isSuccess && filteredRuns.length > 0 && (
-        <div className="space-y-2">
+        <div className="card divide-y divide-slate-200 overflow-hidden dark:divide-slate-800">
           {filteredRuns.map((run) => (
             <PipelineRunRow key={run.id} run={run} prodEnvironment={prodEnv} />
           ))}

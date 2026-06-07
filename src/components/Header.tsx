@@ -67,7 +67,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
-      <div className="mx-auto max-w-screen-2xl px-4 py-3 flex items-center gap-3">
+      <div className="mx-auto px-4 py-3 flex items-center gap-3">
         <div className="flex items-center gap-2">
           <Radar className="h-5 w-5 text-emerald-500" />
           <h1 className="text-base font-semibold tracking-tight">GitHub Radar</h1>

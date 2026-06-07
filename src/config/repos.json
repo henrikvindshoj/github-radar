@@ -37,15 +37,12 @@
       ]
     },
     {
-      "name": "cup",
+      "name": "people-registry",
       "repos": [
-        { "owner": "vippsas", "name": "minimal-framework", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "worker-management", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "box", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "vm-balance", "pipelines": [{ "workflow": "Build & publish VippsService" }] },
-        { "owner": "vippsas", "name": "vouchers", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "vm-shared-emailservice", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "user-referrals", "pipelines": [{ "workflow": "Build & publish VippsService" }] }
+        { "owner": "vippsas", "name": "people-registry", "pipelines": [{ "workflow": "Build and publish main" }] },
+        { "owner": "vippsas", "name": "dk-cpr-registry", "pipelines": [{ "workflow": "Build and publish main" }] },
+        { "owner": "vippsas", "name": "bisnode-registry", "pipelines": [{ "workflow": "Build and publish" }] },
+        { "owner": "vippsas", "name": "no-folkeregister-registry", "pipelines": [{ "workflow": "Build and publish main" }] }
       ]
     },
     {
@@ -58,12 +55,15 @@
       ]
     },
     {
-      "name": "people-registry",
+      "name": "cup",
       "repos": [
-        { "owner": "vippsas", "name": "people-registry", "pipelines": [{ "workflow": "Build and publish main" }] },
-        { "owner": "vippsas", "name": "dk-cpr-registry", "pipelines": [{ "workflow": "Build and publish main" }] },
-        { "owner": "vippsas", "name": "bisnode-registry", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "no-folkeregister-registry", "pipelines": [{ "workflow": "Build and publish main" }] }
+        { "owner": "vippsas", "name": "minimal-framework", "pipelines": [{ "workflow": "Build and publish" }] },
+        { "owner": "vippsas", "name": "worker-management", "pipelines": [{ "workflow": "Build and publish" }] },
+        { "owner": "vippsas", "name": "box", "pipelines": [{ "workflow": "Build and publish" }] },
+        { "owner": "vippsas", "name": "vm-balance", "pipelines": [{ "workflow": "Build & publish VippsService" }] },
+        { "owner": "vippsas", "name": "vouchers", "pipelines": [{ "workflow": "Build and publish" }] },
+        { "owner": "vippsas", "name": "vm-shared-emailservice", "pipelines": [{ "workflow": "Build and publish" }] },
+        { "owner": "vippsas", "name": "user-referrals", "pipelines": [{ "workflow": "Build & publish VippsService" }] }
       ]
     },
     {
