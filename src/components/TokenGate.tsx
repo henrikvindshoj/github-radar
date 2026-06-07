@@ -64,6 +64,7 @@ export function TokenGate({ initialToken, onClose, mode }: TokenGateProps) {
             <span className="block mt-1">
               Repository permissions &rarr; <code className="font-mono">Contents: Read</code>,{" "}
               <code className="font-mono">Pull requests: Read</code>,{" "}
+              <code className="font-mono">Actions: Read</code>,{" "}
               <code className="font-mono">Metadata: Read</code>.
             </span>
             Anything stored in localStorage is XSS-readable. Personal use only.

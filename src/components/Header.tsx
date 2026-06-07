@@ -1,14 +1,44 @@
 import { formatDistanceToNowStrict } from "date-fns";
-import { Settings, Radar } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Settings, Radar, GitPullRequest, Rocket } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { RefreshControl } from "./RefreshControl";
 
+export type RadarView = "prs" | "pipelines";
+
 interface HeaderProps {
+  view: RadarView;
+  onViewChange: (view: RadarView) => void;
   viewer: string | null;
   isFetching: boolean;
   lastUpdated: number;
   onRefresh: () => void;
   onOpenSettings: () => void;
+}
+
+interface NavTabProps {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  label: string;
+}
+
+function NavTab({ active, onClick, icon, label }: NavTabProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={
+        "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium leading-none transition-colors " +
+        (active
+          ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+          : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800")
+      }
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
 }
 
 function useTicker(intervalMs: number): number {
@@ -21,6 +51,8 @@ function useTicker(intervalMs: number): number {
 }
 
 export function Header({
+  view,
+  onViewChange,
   viewer,
   isFetching,
   lastUpdated,
@@ -40,6 +72,21 @@ export function Header({
           <Radar className="h-5 w-5 text-emerald-500" />
           <h1 className="text-base font-semibold tracking-tight">GitHub Radar</h1>
         </div>
+
+        <nav className="ml-2 flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-900">
+          <NavTab
+            active={view === "prs"}
+            onClick={() => onViewChange("prs")}
+            icon={<GitPullRequest className="h-3.5 w-3.5" />}
+            label="Pull requests"
+          />
+          <NavTab
+            active={view === "pipelines"}
+            onClick={() => onViewChange("pipelines")}
+            icon={<Rocket className="h-3.5 w-3.5" />}
+            label="Pipelines"
+          />
+        </nav>
 
         <div className="ml-auto flex items-center gap-2">
           <span

@@ -1,15 +1,25 @@
 import { useCallback, useState } from "react";
-import { Header } from "./components/Header";
+import { Header, type RadarView } from "./components/Header";
 import { Dashboard } from "./components/Dashboard";
+import { Pipelines } from "./components/Pipelines";
 import { FilterBar } from "./components/FilterBar";
+import { PipelineFilterBar } from "./components/PipelineFilterBar";
 import { TokenGate } from "./components/TokenGate";
 import { useToken, useViewer } from "./lib/token";
 import { defaultFilters, type Filters } from "./lib/filters";
+import {
+  defaultPipelineFilters,
+  type PipelineFilters,
+} from "./lib/pipelineFilters";
 
 export function App() {
   const token = useToken();
   const viewer = useViewer();
+  const [view, setView] = useState<RadarView>("prs");
   const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [pipelineFilters, setPipelineFilters] = useState<PipelineFilters>(
+    defaultPipelineFilters,
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [summary, setSummary] = useState({ isFetching: false, lastUpdated: 0 });
   const [refreshSignal, setRefreshSignal] = useState(0);
@@ -33,6 +43,8 @@ export function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header
+        view={view}
+        onViewChange={setView}
         viewer={viewer}
         isFetching={summary.isFetching}
         lastUpdated={summary.lastUpdated}
@@ -40,21 +52,40 @@ export function App() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
       <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 space-y-6">
-        <FilterBar
-          filters={filters}
-          onChange={setFilters}
-          viewerKnown={Boolean(viewer)}
-        />
-        {token ? (
-          <Dashboard
+        {view === "prs" ? (
+          <FilterBar
             filters={filters}
-            viewer={viewer}
-            onSummaryChange={handleSummary}
-            refreshSignal={refreshSignal}
+            onChange={setFilters}
+            viewerKnown={Boolean(viewer)}
           />
         ) : (
+          <PipelineFilterBar
+            filters={pipelineFilters}
+            onChange={setPipelineFilters}
+            viewerKnown={Boolean(viewer)}
+          />
+        )}
+
+        {token ? (
+          view === "prs" ? (
+            <Dashboard
+              filters={filters}
+              viewer={viewer}
+              onSummaryChange={handleSummary}
+              refreshSignal={refreshSignal}
+            />
+          ) : (
+            <Pipelines
+              filters={pipelineFilters}
+              viewer={viewer}
+              onSummaryChange={handleSummary}
+              refreshSignal={refreshSignal}
+            />
+          )
+        ) : (
           <div className="text-center py-20 text-sm text-slate-500 dark:text-slate-400">
-            Connect a GitHub personal access token to load pull requests.
+            Connect a GitHub personal access token to load{" "}
+            {view === "prs" ? "pull requests" : "pipelines"}.
           </div>
         )}
       </main>
