@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAllPullRequests, type RepoQuery } from "../hooks/usePullRequests";
 import { groups, repos, repoKey } from "../config/schema";
-import type { Filters } from "../lib/filters";
+import { matchesFilters, type Filters } from "../lib/filters";
 import { useCollapsedGroups } from "../lib/collapsedGroups";
 import { RepoSection } from "./RepoSection";
 
@@ -68,7 +68,7 @@ export function Dashboard({
           : group.repos
               .map((repo) => entryByKey.get(repoKey(repo)))
               .filter((e): e is RepoQuery => Boolean(e))
-              .filter(hasContentToRender);
+              .filter((e) => hasContentToRender(e, filters, viewer));
 
         const showBody = !collapsed && visibleEntries.length > 0;
 
@@ -111,11 +111,16 @@ export function Dashboard({
   );
 }
 
-function hasContentToRender(entry: RepoQuery): boolean {
+function hasContentToRender(
+  entry: RepoQuery,
+  filters: Filters,
+  viewer: string | null,
+): boolean {
   const q = entry.query;
   if (q.isPending || q.isError) return true;
   if (q.isSuccess) {
-    return (q.data?.pullRequests.nodes.length ?? 0) > 0;
+    const nodes = q.data?.pullRequests.nodes ?? [];
+    return nodes.some((pr) => matchesFilters(pr, filters, viewer));
   }
   return true;
 }
