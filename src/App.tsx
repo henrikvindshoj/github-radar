@@ -51,7 +51,7 @@ export function App() {
         onRefresh={handleRefresh}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 space-y-6">
+      <main className="mx-auto w-full flex-1 px-4 py-6 space-y-6">
         {view === "prs" ? (
           <FilterBar
             filters={filters}

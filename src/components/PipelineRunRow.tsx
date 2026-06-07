@@ -47,7 +47,7 @@ export function PipelineRunRow({ run, prodEnvironment }: PipelineRunRowProps) {
   const when = formatDistanceToNowStrict(new Date(started), { addSuffix: true });
 
   return (
-    <article className="card flex items-stretch overflow-hidden transition-colors hover:border-slate-300 dark:hover:border-slate-700">
+    <article className="flex items-stretch overflow-hidden transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
       <div
         className={`w-1 flex-shrink-0 ${pipelineColorClass(state)}`}
         aria-hidden

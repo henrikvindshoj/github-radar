@@ -110,7 +110,7 @@ export function Pipelines({
               </button>
             </h2>
             {showBody && (
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {visibleEntries.map((entry) => (
                   <PipelineRepoSection
                     key={entry.target.key}
