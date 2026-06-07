@@ -1,16 +1,27 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-const STORAGE_KEY = "ghpr.collapsedGroups";
+const DEFAULT_STORAGE_KEY = "ghpr.collapsedGroups";
 
-const listeners = new Set<() => void>();
-
-function emit(): void {
-  for (const l of listeners) l();
+interface Store {
+  storageKey: string;
+  listeners: Set<() => void>;
+  cache: Set<string> | null;
 }
 
-function read(): Set<string> {
+const stores = new Map<string, Store>();
+
+function getStore(storageKey: string): Store {
+  let store = stores.get(storageKey);
+  if (!store) {
+    store = { storageKey, listeners: new Set(), cache: null };
+    stores.set(storageKey, store);
+  }
+  return store;
+}
+
+function read(storageKey: string): Set<string> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return new Set();
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
@@ -20,61 +31,63 @@ function read(): Set<string> {
   }
 }
 
-function write(value: Set<string>): void {
+function write(storageKey: string, value: Set<string>): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...value]));
+    localStorage.setItem(storageKey, JSON.stringify([...value]));
   } catch {
     // ignore quota / privacy errors
   }
 }
 
-let cache: Set<string> | null = null;
-
-function getSnapshot(): Set<string> {
-  if (cache === null) cache = read();
-  return cache;
+function getSnapshot(store: Store): Set<string> {
+  if (store.cache === null) store.cache = read(store.storageKey);
+  return store.cache;
 }
 
-function refreshFromStorage(): void {
-  cache = read();
-  emit();
+function emit(store: Store): void {
+  for (const l of store.listeners) l();
 }
 
-function subscribe(cb: () => void): () => void {
-  listeners.add(cb);
+function subscribe(store: Store, cb: () => void): () => void {
+  store.listeners.add(cb);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY) {
-      refreshFromStorage();
+    if (e.key === store.storageKey) {
+      store.cache = read(store.storageKey);
       cb();
     }
   };
   window.addEventListener("storage", onStorage);
   return () => {
-    listeners.delete(cb);
+    store.listeners.delete(cb);
     window.removeEventListener("storage", onStorage);
   };
 }
 
-export function useCollapsedGroups(): {
+export function useCollapsedGroups(storageKey: string = DEFAULT_STORAGE_KEY): {
   collapsed: Set<string>;
   isCollapsed: (groupName: string) => boolean;
   toggle: (groupName: string) => void;
 } {
+  const store = getStore(storageKey);
+
   const collapsed = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
+    (cb) => subscribe(store, cb),
+    () => getSnapshot(store),
     () => new Set<string>(),
   );
 
-  const toggle = useCallback((groupName: string) => {
-    const current = getSnapshot();
-    const next = new Set(current);
-    if (next.has(groupName)) next.delete(groupName);
-    else next.add(groupName);
-    cache = next;
-    write(next);
-    emit();
-  }, []);
+  const toggle = useCallback(
+    (groupName: string) => {
+      const current = getSnapshot(store);
+      const next = new Set(current);
+      if (next.has(groupName)) next.delete(groupName);
+      else next.add(groupName);
+      store.cache = next;
+      write(store.storageKey, next);
+      emit(store);
+    },
+    [store],
+  );
 
   const isCollapsed = useCallback(
     (groupName: string) => collapsed.has(groupName),
