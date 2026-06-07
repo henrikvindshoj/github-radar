@@ -78,6 +78,12 @@ export function PipelineFilterBar({
         title="Show only pipelines whose most recent deployment failed"
       />
       <Toggle
+        label="Not Bump"
+        active={filters.notBump}
+        onToggle={() => set({ notBump: !filters.notBump })}
+        title={'Hide "Awaiting deployment" runs whose title starts with "Bump" (e.g. dependabot PRs)'}
+      />
+      <Toggle
         label="Only mine"
         active={filters.onlyMine}
         onToggle={() => set({ onlyMine: !filters.onlyMine })}

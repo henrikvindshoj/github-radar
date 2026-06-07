@@ -9,6 +9,11 @@ export interface PipelineFilters {
   failingOnly: boolean;
   /** Only show runs triggered by the signed-in user. */
   onlyMine: boolean;
+  /**
+   * Hide "Awaiting deployment" runs whose title starts with "Bump"
+   * (typically dependabot-authored PRs).
+   */
+  notBump: boolean;
 }
 
 /**
@@ -25,6 +30,7 @@ export const defaultPipelineFilters: PipelineFilters = {
   pendingProdOnly: false,
   failingOnly: false,
   onlyMine: false,
+  notBump: false,
 };
 
 export function matchesPipelineFilters(
@@ -34,6 +40,13 @@ export function matchesPipelineFilters(
 ): boolean {
   const state = derivePipelineState(run);
 
+  if (
+    filters.notBump &&
+    state === "awaiting" &&
+    run.display_title.trim().toLowerCase().startsWith("bump")
+  ) {
+    return false;
+  }
   if (filters.pendingProdOnly && !isPendingProd(state)) return false;
   if (filters.onlyMine) {
     if (!viewer) return false;
