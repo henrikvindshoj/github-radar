@@ -1,5 +1,9 @@
 import type { WorkflowRun } from "./githubActions";
-import { derivePipelineState, isPendingProd } from "./pipelineStatus";
+import {
+  derivePipelineState,
+  isPendingProd,
+  runsUpToFirstProd,
+} from "./pipelineStatus";
 
 export interface PipelineFilters {
   search: string;
@@ -14,6 +18,8 @@ export interface PipelineFilters {
    * (typically dependabot-authored PRs).
    */
   notBump: boolean;
+  /** Hide pipelines that have nothing awaiting PROD (already up to date). */
+  hideUpToDate: boolean;
 }
 
 /**
@@ -25,12 +31,23 @@ export function latestDeploymentFailing(runs: WorkflowRun[]): boolean {
   return latest ? derivePipelineState(latest) === "failed" : false;
 }
 
+/**
+ * Whether a pipeline has any run still awaiting / progressing toward PROD.
+ * `runs` must be ordered newest-first (as returned by the GitHub API).
+ */
+export function hasPendingProd(runs: WorkflowRun[]): boolean {
+  return runsUpToFirstProd(runs).some((run) =>
+    isPendingProd(derivePipelineState(run)),
+  );
+}
+
 export const defaultPipelineFilters: PipelineFilters = {
   search: "",
   pendingProdOnly: false,
   failingOnly: false,
   onlyMine: false,
   notBump: false,
+  hideUpToDate: false,
 };
 
 export function matchesPipelineFilters(

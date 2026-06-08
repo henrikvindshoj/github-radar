@@ -84,6 +84,12 @@ export function PipelineFilterBar({
         title={'Hide "Awaiting deployment" runs whose title starts with "Bump" (e.g. dependabot PRs)'}
       />
       <Toggle
+        label="Hide up to date"
+        active={filters.hideUpToDate}
+        onToggle={() => set({ hideUpToDate: !filters.hideUpToDate })}
+        title="Hide pipelines that have nothing awaiting PROD"
+      />
+      <Toggle
         label="Only mine"
         active={filters.onlyMine}
         onToggle={() => set({ onlyMine: !filters.onlyMine })}
