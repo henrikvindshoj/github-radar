@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAllPipelines, type PipelineQuery } from "../hooks/usePipelines";
 import { pipelineGroups, pipelineTargets } from "../config/schema";
 import {
+  hasPendingProd,
   latestDeploymentFailing,
   matchesPipelineFilters,
   type PipelineFilters,
@@ -138,6 +139,7 @@ function hasContentToRender(
   if (q.isSuccess) {
     const dataRuns = q.data?.runs ?? [];
     if (filters.failingOnly && !latestDeploymentFailing(dataRuns)) return false;
+    if (filters.hideUpToDate && !hasPendingProd(dataRuns)) return false;
     const runs = runsUpToFirstProd(dataRuns);
     return runs.some((run) => matchesPipelineFilters(run, filters, viewer));
   }
