@@ -3,7 +3,6 @@ import type { RepoQuery } from "../hooks/usePullRequests";
 import { matchesFilters, type Filters } from "../lib/filters";
 import { PrCard } from "./PrCard";
 import { EmptyState } from "./EmptyState";
-import { repoKey } from "../config/schema";
 
 interface RepoSectionProps {
   entry: RepoQuery;
@@ -13,7 +12,6 @@ interface RepoSectionProps {
 
 export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
   const { repo, query } = entry;
-  const key = repoKey(repo);
   const repoUrl = `https://github.com/${repo.owner}/${repo.name}`;
 
   const allPrs = query.data?.pullRequests.nodes ?? [];
@@ -29,7 +27,7 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
           rel="noreferrer"
           className="group inline-flex items-center gap-1 text-base font-semibold text-slate-800 dark:text-slate-200 hover:underline"
         >
-          <span className="font-mono">{key}</span>
+          <span className="font-mono">{repo.name}</span>
           <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity" />
         </a>
         {repo.team && (

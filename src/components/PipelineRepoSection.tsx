@@ -16,7 +16,6 @@ import {
   isPendingProd,
   runsUpToFirstProd,
 } from "../lib/pipelineStatus";
-import { repoKey } from "../config/schema";
 import { PipelineRunRow } from "./PipelineRunRow";
 import { EmptyState } from "./EmptyState";
 
@@ -33,7 +32,6 @@ export function PipelineRepoSection({
 }: PipelineRepoSectionProps) {
   const { repo, pipeline } = entry.target;
   const { query } = entry;
-  const key = repoKey(repo);
   const repoUrl = `https://github.com/${repo.owner}/${repo.name}`;
   const prodEnv = pipeline.prodEnvironment;
 
@@ -57,7 +55,7 @@ export function PipelineRepoSection({
           rel="noreferrer"
           className="group inline-flex items-center gap-1 text-base font-semibold text-slate-800 dark:text-slate-200 hover:underline"
         >
-          <span className="font-mono">{key}</span>
+          <span className="font-mono">{repo.name}</span>
           <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity" />
         </a>
 
