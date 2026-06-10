@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAllPullRequests, type RepoQuery } from "../hooks/usePullRequests";
-import { groups, repos, repoKey } from "../config/schema";
+import { repoKey } from "../config/schema";
+import { useConfig } from "../config/configStore";
 import { matchesFilters, type Filters } from "../lib/filters";
 import { useCollapsedGroups } from "../lib/collapsedGroups";
 import { RepoSection } from "./RepoSection";
@@ -20,6 +21,7 @@ export function Dashboard({
   refreshSignal,
 }: DashboardProps) {
   const { isCollapsed, toggle } = useCollapsedGroups();
+  const { groups, repos } = useConfig();
 
   const disabledKeys = useMemo(() => {
     const set = new Set<string>();
@@ -29,7 +31,7 @@ export function Dashboard({
       }
     }
     return set;
-  }, [isCollapsed]);
+  }, [isCollapsed, groups]);
 
   const entries = useAllPullRequests(repos, disabledKeys);
 

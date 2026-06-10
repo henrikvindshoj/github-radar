@@ -5,6 +5,7 @@ import { Pipelines } from "./components/Pipelines";
 import { FilterBar } from "./components/FilterBar";
 import { PipelineFilterBar } from "./components/PipelineFilterBar";
 import { TokenGate } from "./components/TokenGate";
+import { ConfigEditor } from "./components/ConfigEditor";
 import { useToken, useViewer } from "./lib/token";
 import { defaultFilters, type Filters } from "./lib/filters";
 import {
@@ -21,6 +22,7 @@ export function App() {
     defaultPipelineFilters,
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [summary, setSummary] = useState({ isFetching: false, lastUpdated: 0 });
   const [refreshSignal, setRefreshSignal] = useState(0);
 
@@ -50,6 +52,7 @@ export function App() {
         lastUpdated={summary.lastUpdated}
         onRefresh={handleRefresh}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenConfig={() => setConfigOpen(true)}
       />
       <main className="mx-auto w-full flex-1 px-4 py-6 space-y-6">
         {view === "prs" ? (
@@ -98,6 +101,7 @@ export function App() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      {configOpen && <ConfigEditor onClose={() => setConfigOpen(false)} />}
     </div>
   );
 }

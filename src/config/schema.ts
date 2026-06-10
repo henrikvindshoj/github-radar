@@ -1,5 +1,5 @@
 import { z } from "zod";
-import rawConfig from "./repos.json";
+import rawDefaultConfig from "./repos.json";
 
 // Pipeline (GitHub Actions) configuration. `pipelineDefaults` applies to every
 // repo; each repo may override any field or opt out via `enabled: false`.
@@ -35,7 +35,7 @@ const TeamsSchema = z.record(
   z.array(z.string().min(1)).min(1),
 );
 
-const ConfigSchema = z
+export const ConfigSchema = z
   .object({
     teams: TeamsSchema,
     pipelineDefaults: PipelineDefaultsSchema.optional(),
@@ -50,14 +50,14 @@ const ConfigSchema = z
           ctx.addIssue({
             code: "custom",
             path: ["groups", gi, "repos", ri, "team"],
-            message: `Repo ${r.owner}/${r.name} references unknown team "${r.team}". Define it under "teams" in repos.json.`,
+            message: `Repo ${r.owner}/${r.name} references unknown team "${r.team}". Define it under "teams".`,
           });
         }
       }
     }
   });
 
-const parsed = ConfigSchema.parse(rawConfig);
+export type Config = z.infer<typeof ConfigSchema>;
 
 export interface ResolvedPipeline {
   /** Workflow display name or file name to match (e.g. "Build and publish main"). */
@@ -96,55 +96,17 @@ export interface PipelineGroup {
   targets: PipelineTarget[];
 }
 
-const teamMembersByName = new Map<string, ReadonlySet<string>>();
-for (const [name, members] of Object.entries(parsed.teams)) {
-  teamMembersByName.set(
-    name,
-    new Set(members.map((m) => m.toLowerCase())),
-  );
+/** Fully resolved configuration ready for consumption by the UI. */
+export interface ResolvedConfig {
+  groups: RepoGroup[];
+  repos: Repo[];
+  pipelineGroups: PipelineGroup[];
+  pipelineTargets: PipelineTarget[];
 }
 
 const DEFAULT_BRANCH = "main";
 const DEFAULT_RUNS_TO_SHOW = 10;
 const DEFAULT_PROD_ENVIRONMENT = "PROD";
-
-const pipelineDefaults = parsed.pipelineDefaults;
-
-function resolvePipeline(
-  input: z.infer<typeof RepoPipelineSchema> | undefined,
-): ResolvedPipeline | undefined {
-  const enabled = input?.enabled ?? true;
-  if (!enabled) return undefined;
-
-  const workflow = input?.workflow ?? pipelineDefaults?.workflow;
-  if (!workflow) return undefined;
-
-  return {
-    workflow,
-    branch: input?.branch ?? pipelineDefaults?.branch ?? DEFAULT_BRANCH,
-    runsToShow:
-      input?.runsToShow ??
-      pipelineDefaults?.runsToShow ??
-      DEFAULT_RUNS_TO_SHOW,
-    prodEnvironment:
-      input?.prodEnvironment ??
-      pipelineDefaults?.prodEnvironment ??
-      DEFAULT_PROD_ENVIRONMENT,
-  };
-}
-
-function resolveRepo(input: z.infer<typeof RepoEntrySchema>): Repo {
-  const repo: Repo = {
-    owner: input.owner,
-    name: input.name,
-    label: input.label,
-    team: input.team,
-  };
-  if (input.team) {
-    repo.teamMembers = teamMembersByName.get(input.team);
-  }
-  return repo;
-}
 
 export function repoKey(r: Pick<Repo, "owner" | "name">): string {
   return `${r.owner}/${r.name}`;
@@ -155,55 +117,105 @@ export function pipelineKey(repo: Repo, p: ResolvedPipeline): string {
 }
 
 /**
- * Resolve the list of pipelines configured for a repo entry. Supports a single
- * `pipeline`, an array of `pipelines`, or falling back to `pipelineDefaults`.
+ * Turn a validated raw config into the resolved shape used by the app. Pure:
+ * the same input always yields the same output, with no module-level state.
  */
-function resolvePipelineList(
-  input: z.infer<typeof RepoEntrySchema>,
-): ResolvedPipeline[] {
-  let inputs: Array<z.infer<typeof RepoPipelineSchema> | undefined>;
-  if (input.pipelines && input.pipelines.length > 0) {
-    inputs = input.pipelines;
-  } else if (input.pipeline) {
-    inputs = [input.pipeline];
-  } else {
-    inputs = [undefined]; // may still resolve from pipelineDefaults
+export function resolveConfig(parsed: Config): ResolvedConfig {
+  const teamMembersByName = new Map<string, ReadonlySet<string>>();
+  for (const [name, members] of Object.entries(parsed.teams)) {
+    teamMembersByName.set(name, new Set(members.map((m) => m.toLowerCase())));
   }
 
-  const resolved: ResolvedPipeline[] = [];
-  const seen = new Set<string>();
-  for (const i of inputs) {
-    const p = resolvePipeline(i);
-    if (!p) continue;
-    const k = `${p.workflow}@${p.branch}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    resolved.push(p);
+  const pipelineDefaults = parsed.pipelineDefaults;
+
+  function resolvePipeline(
+    input: z.infer<typeof RepoPipelineSchema> | undefined,
+  ): ResolvedPipeline | undefined {
+    const enabled = input?.enabled ?? true;
+    if (!enabled) return undefined;
+
+    const workflow = input?.workflow ?? pipelineDefaults?.workflow;
+    if (!workflow) return undefined;
+
+    return {
+      workflow,
+      branch: input?.branch ?? pipelineDefaults?.branch ?? DEFAULT_BRANCH,
+      runsToShow:
+        input?.runsToShow ??
+        pipelineDefaults?.runsToShow ??
+        DEFAULT_RUNS_TO_SHOW,
+      prodEnvironment:
+        input?.prodEnvironment ??
+        pipelineDefaults?.prodEnvironment ??
+        DEFAULT_PROD_ENVIRONMENT,
+    };
   }
-  return resolved;
+
+  function resolveRepo(input: z.infer<typeof RepoEntrySchema>): Repo {
+    const repo: Repo = {
+      owner: input.owner,
+      name: input.name,
+      label: input.label,
+      team: input.team,
+    };
+    if (input.team) {
+      repo.teamMembers = teamMembersByName.get(input.team);
+    }
+    return repo;
+  }
+
+  function resolvePipelineList(
+    input: z.infer<typeof RepoEntrySchema>,
+  ): ResolvedPipeline[] {
+    let inputs: Array<z.infer<typeof RepoPipelineSchema> | undefined>;
+    if (input.pipelines && input.pipelines.length > 0) {
+      inputs = input.pipelines;
+    } else if (input.pipeline) {
+      inputs = [input.pipeline];
+    } else {
+      inputs = [undefined]; // may still resolve from pipelineDefaults
+    }
+
+    const resolved: ResolvedPipeline[] = [];
+    const seen = new Set<string>();
+    for (const i of inputs) {
+      const p = resolvePipeline(i);
+      if (!p) continue;
+      const k = `${p.workflow}@${p.branch}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      resolved.push(p);
+    }
+    return resolved;
+  }
+
+  const groups: RepoGroup[] = parsed.groups.map((g) => ({
+    name: g.name,
+    repos: g.repos.map(resolveRepo),
+  }));
+
+  const repos: Repo[] = groups.flatMap((g) => g.repos);
+
+  const pipelineGroups: PipelineGroup[] = parsed.groups
+    .map((g) => {
+      const targets: PipelineTarget[] = [];
+      for (const entry of g.repos) {
+        const repo = resolveRepo(entry);
+        for (const pipeline of resolvePipelineList(entry)) {
+          targets.push({ repo, pipeline, key: pipelineKey(repo, pipeline) });
+        }
+      }
+      return { name: g.name, targets };
+    })
+    .filter((g) => g.targets.length > 0);
+
+  const pipelineTargets: PipelineTarget[] = pipelineGroups.flatMap(
+    (g) => g.targets,
+  );
+
+  return { groups, repos, pipelineGroups, pipelineTargets };
 }
 
-export const groups: RepoGroup[] = parsed.groups.map((g) => ({
-  name: g.name,
-  repos: g.repos.map(resolveRepo),
-}));
-
-export const repos: Repo[] = groups.flatMap((g) => g.repos);
-
-/** Groups of monitored pipeline targets (a repo may contribute several). */
-export const pipelineGroups: PipelineGroup[] = parsed.groups
-  .map((g) => {
-    const targets: PipelineTarget[] = [];
-    for (const entry of g.repos) {
-      const repo = resolveRepo(entry);
-      for (const pipeline of resolvePipelineList(entry)) {
-        targets.push({ repo, pipeline, key: pipelineKey(repo, pipeline) });
-      }
-    }
-    return { name: g.name, targets };
-  })
-  .filter((g) => g.targets.length > 0);
-
-export const pipelineTargets: PipelineTarget[] = pipelineGroups.flatMap(
-  (g) => g.targets,
-);
+/** The bundled configuration, used as the seed/default for new browsers. */
+export const defaultConfig: Config = ConfigSchema.parse(rawDefaultConfig);
+export const defaultResolvedConfig: ResolvedConfig = resolveConfig(defaultConfig);

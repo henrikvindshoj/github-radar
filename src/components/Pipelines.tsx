@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAllPipelines, type PipelineQuery } from "../hooks/usePipelines";
-import { pipelineGroups, pipelineTargets } from "../config/schema";
+import { useConfig } from "../config/configStore";
 import {
   hasPendingProd,
   latestDeploymentFailing,
@@ -29,6 +29,7 @@ export function Pipelines({
   refreshSignal,
 }: PipelinesProps) {
   const { isCollapsed, toggle } = useCollapsedGroups(COLLAPSE_STORAGE_KEY);
+  const { pipelineGroups, pipelineTargets } = useConfig();
 
   const disabledKeys = useMemo(() => {
     const set = new Set<string>();
@@ -38,7 +39,7 @@ export function Pipelines({
       }
     }
     return set;
-  }, [isCollapsed]);
+  }, [isCollapsed, pipelineGroups]);
 
   const entries = useAllPipelines(pipelineTargets, true, disabledKeys);
 
@@ -70,7 +71,7 @@ export function Pipelines({
     return (
       <EmptyState
         title="No pipelines configured"
-        description='Set "pipelineDefaults" or a per-repo "pipeline" / "pipelines" in src/config/repos.json.'
+        description='Set "pipelineDefaults" or a per-repo "pipeline" / "pipelines" in the Config editor (gear menu).'
       />
     );
   }

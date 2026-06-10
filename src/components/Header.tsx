@@ -1,5 +1,5 @@
 import { formatDistanceToNowStrict } from "date-fns";
-import { Settings, Radar, GitPullRequest, Rocket } from "lucide-react";
+import { Settings, Radar, GitPullRequest, Rocket, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { RefreshControl } from "./RefreshControl";
 
@@ -13,6 +13,7 @@ interface HeaderProps {
   lastUpdated: number;
   onRefresh: () => void;
   onOpenSettings: () => void;
+  onOpenConfig: () => void;
 }
 
 interface NavTabProps {
@@ -58,6 +59,7 @@ export function Header({
   lastUpdated,
   onRefresh,
   onOpenSettings,
+  onOpenConfig,
 }: HeaderProps) {
   useTicker(15_000);
   const updatedLabel =
@@ -101,6 +103,16 @@ export function Header({
           </span>
 
           <RefreshControl isFetching={isFetching} onRefresh={onRefresh} />
+
+          <button
+            type="button"
+            onClick={onOpenConfig}
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 text-xs font-medium leading-none shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+            title="Edit repository configuration"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Config</span>
+          </button>
 
           <button
             type="button"
