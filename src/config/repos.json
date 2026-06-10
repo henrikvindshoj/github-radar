@@ -1,15 +1,5 @@
 {
-  "teams": {
-    "Team Users and eMoney": [
-      "henrikvindshoj",
-      "VMChristofferBech",
-      "MariusHBovbjerg",
-      "jenspo",
-      "Tulstrup",
-      "HuynhNikolaj",
-      "VmPeter"      
-    ]
-  },
+  "teams": {},
   "pipelineDefaults": {
     "branch": "main",
     "runsToShow": 10,
@@ -17,63 +7,10 @@
   },
   "groups": [
     {
-      "name": "user-core",
+      "name": "examples",
       "repos": [
-        { "owner": "vippsas", "name": "onboarding", "pipelines": [{ "workflow": "Build and publish main" }] },
-        { "owner": "vippsas", "name": "person", "pipelines": [{ "workflow": "Build and publish main" }] },
-        { "owner": "vippsas", "name": "user", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "youngster", "pipelines": [{ "workflow": "Build & publish VippsService" }] },
-        {
-          "owner": "vippsas",
-          "name": "vippsere",
-          "team": "Team Users and eMoney",
-          "pipelines": [
-            { "workflow": "fileservice", "branch": "master" },
-            { "workflow": "u15-api", "branch": "master" }
-          ]
-        },
-        { "owner": "vippsas", "name": "user-vaap-synchronizer", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "mobilepay-user-customerid-lookup", "pipelines": [{ "workflow": "Build and publish main" }] }
-      ]
-    },
-    {
-      "name": "people-registry",
-      "repos": [
-        { "owner": "vippsas", "name": "people-registry", "pipelines": [{ "workflow": "Build and publish main" }] },
-        { "owner": "vippsas", "name": "dk-cpr-registry", "pipelines": [{ "workflow": "Build and publish main" }] },
-        { "owner": "vippsas", "name": "bisnode-registry", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "no-folkeregister-registry", "pipelines": [{ "workflow": "Build and publish main" }] }
-      ]
-    },
-    {
-      "name": "test-user",
-      "repos": [
-        { "owner": "vippsas", "name": "test-user-flows", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "test-user-data", "pipelines": [{ "workflow": "Build and publish main" }] },
-        { "owner": "vippsas", "name": "test-user-tessa", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "test-data-generator" }
-      ]
-    },
-    {
-      "name": "cup",
-      "repos": [
-        { "owner": "vippsas", "name": "minimal-framework", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "worker-management", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "box", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "vm-balance", "pipelines": [{ "workflow": "Build & publish VippsService" }] },
-        { "owner": "vippsas", "name": "vouchers", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "vm-shared-emailservice", "pipelines": [{ "workflow": "Build and publish" }] },
-        { "owner": "vippsas", "name": "user-referrals", "pipelines": [{ "workflow": "Build & publish VippsService" }] }
-      ]
-    },
-    {
-      "name": "user-core-nuget",
-      "repos": [
-        { "owner": "vippsas", "name": "vm-shared-logging", "pipelines": [{ "workflow": "Build and publish", "prodEnvironment": "NuGet" }] },
-        { "owner": "vippsas", "name": "user-web-application", "pipelines": [{ "workflow": "Build and publish NuGet", "prodEnvironment": "NuGet" }] },
-        { "owner": "vippsas", "name": "user-hangfire", "pipelines": [{ "workflow": "Build and publish", "prodEnvironment": "NuGet" }] },
-        { "owner": "vippsas", "name": "user-nin-calculator", "pipelines": [{ "workflow": "Build and publish", "prodEnvironment": "NuGet" }] },
-        { "owner": "vippsas", "name": "user-eventhub", "pipelines": [{ "workflow": "Build and publish", "prodEnvironment": "NuGet" }] }
+        { "owner": "vercel", "name": "next.js" },
+        { "owner": "facebook", "name": "react" }
       ]
     }
   ]

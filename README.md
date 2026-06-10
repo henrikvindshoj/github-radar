@@ -5,7 +5,7 @@ A GoCD-inspired dashboard for personal use. Two views, switchable from the heade
 - **Pull requests** — open PRs across a fixed list of repos, grouped by repo, with per-PR status (CI checks, review decision, mergeability).
 - **Pipelines** — recent GitHub Actions workflow runs across repos, so you can see at a glance which changes are deployed to PROD and which are still **awaiting deployment** or **running**.
 
-Fully static React + TypeScript SPA. Talks directly to the GitHub GraphQL + REST APIs from the browser using a personal access token stored in `localStorage`. No backend.
+Fully static React + TypeScript SPA. Talks directly to the GitHub GraphQL + REST APIs from the browser using a personal access token stored in `localStorage`. The monitored repos/pipelines are configured per browser and also stored in `localStorage`, so different users can run their own setup independently. No backend.
 
 ## Setup
 
@@ -18,7 +18,7 @@ Open the printed URL, paste a fine-grained GitHub PAT into the first-run dialog,
 
 ### Required PAT scopes
 
-Use a **fine-grained PAT** scoped to only the repos in `src/config/repos.json`. Repository permissions:
+Use a **fine-grained PAT** scoped to only the repos in your configuration. Repository permissions:
 
 - `Contents: Read`
 - `Pull requests: Read`
@@ -31,20 +31,28 @@ Create one at [github.com/settings/personal-access-tokens/new](https://github.co
 
 ## Configuring repos
 
-Edit [`src/config/repos.json`](src/config/repos.json):
+Open the **Config** button in the header to edit the JSON directly in the app. It is validated by Zod ([`src/config/schema.ts`](src/config/schema.ts)) and saved to this browser's `localStorage`, so each user keeps their own setup. "Reset to default" restores the bundled config.
+
+The bundled default lives in [`src/config/repos.json`](src/config/repos.json) and is used as the seed whenever a browser has no saved config:
 
 ```json
-[
-  { "owner": "vercel", "name": "next.js" },
-  { "owner": "facebook", "name": "react" }
-]
+{
+  "teams": {},
+  "groups": [
+    {
+      "name": "examples",
+      "repos": [
+        { "owner": "vercel", "name": "next.js" },
+        { "owner": "facebook", "name": "react" }
+      ]
+    }
+  ]
+}
 ```
-
-The list is validated by Zod at startup ([`src/config/schema.ts`](src/config/schema.ts)).
 
 ## Configuring pipelines
 
-Pipeline tracking is configured in the **same** [`src/config/repos.json`](src/config/repos.json) file. The workflow name is set **per repo** (workflow names differ across repos, so the name is repeated on each entry — that's expected). Shared settings like `branch`, `runsToShow`, and `prodEnvironment` live in a top-level `pipelineDefaults` block and can still be overridden per repo:
+Pipeline tracking is configured in the **same** config (Config editor / [`src/config/repos.json`](src/config/repos.json) default). The workflow name is set **per repo** (workflow names differ across repos, so the name is repeated on each entry — that's expected). Shared settings like `branch`, `runsToShow`, and `prodEnvironment` live in a top-level `pipelineDefaults` block and can still be overridden per repo:
 
 ```json
 {
