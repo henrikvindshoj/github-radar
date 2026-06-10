@@ -63,17 +63,17 @@ Pipeline tracking is configured in the **same** config (Config editor / [`src/co
   },
   "groups": [
     {
-      "name": "user-core",
+      "name": "core",
       "repos": [
-        { "owner": "vippsas", "name": "person", "pipeline": { "workflow": "Build and publish main" } },
+        { "owner": "your-org", "name": "service-a", "pipeline": { "workflow": "Build and publish main" } },
         {
-          "owner": "vippsas",
-          "name": "user",
+          "owner": "your-org",
+          "name": "service-b",
           "pipeline": { "workflow": "Deploy", "branch": "release" }
         },
         {
-          "owner": "vippsas",
-          "name": "youngster",
+          "owner": "your-org",
+          "name": "service-c",
           "pipeline": { "enabled": false }
         }
       ]
@@ -100,11 +100,11 @@ Use a `pipelines` array instead of a single `pipeline` to track several workflow
 
 ```json
 {
-  "owner": "vippsas",
-  "name": "vippsere",
+  "owner": "your-org",
+  "name": "multi-service",
   "pipelines": [
-    { "workflow": "fileservice", "branch": "master" },
-    { "workflow": "u15-api", "branch": "master" }
+    { "workflow": "service-one", "branch": "master" },
+    { "workflow": "service-two", "branch": "master" }
   ]
 }
 ```
