@@ -108,7 +108,7 @@ export interface PullRequestNode {
   commits: {
     nodes: Array<{
       commit: {
-        statusCheckRollup: { state: CheckState } | null;
+        status: { state: CheckState } | null;
       };
     }>;
   };
@@ -152,7 +152,7 @@ const REPO_PRS_QUERY = /* GraphQL */ `
           commits(last: 1) {
             nodes {
               commit {
-                statusCheckRollup {
+                status {
                   state
                 }
               }
@@ -207,7 +207,7 @@ const TEAM_REPO_PRS_QUERY = /* GraphQL */ `
           commits(last: 1) {
             nodes {
               commit {
-                statusCheckRollup {
+                status {
                   state
                 }
               }

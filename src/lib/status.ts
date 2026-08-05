@@ -21,7 +21,7 @@ export interface StatusBreakdown {
 }
 
 export function getCheckState(pr: PullRequestNode): CheckState | "NONE" {
-  const rollup = pr.commits.nodes[0]?.commit.statusCheckRollup;
+  const rollup = pr.commits.nodes[0]?.commit.status;
   return rollup?.state ?? "NONE";
 }
 
