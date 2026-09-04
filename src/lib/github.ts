@@ -257,3 +257,116 @@ export async function fetchTeamRepoPullRequests(
     pullRequests: { nodes },
   };
 }
+
+export type ReviewState =
+  | "APPROVED"
+  | "CHANGES_REQUESTED"
+  | "COMMENTED"
+  | "DISMISSED"
+  | "PENDING";
+
+export interface ReviewNode {
+  state: ReviewState;
+  submittedAt: string | null;
+  author: { login: string; avatarUrl: string } | null;
+}
+
+export interface ReviewActivityPullRequest {
+  number: number;
+  title: string;
+  url: string;
+  author: { login: string; avatarUrl: string } | null;
+  reviews: { nodes: ReviewNode[] } | null;
+}
+
+export interface RepoReviewActivity {
+  nameWithOwner: string;
+  pullRequests: ReviewActivityPullRequest[];
+  /** True when the repo had more matching PRs than we were willing to page through. */
+  truncated: boolean;
+}
+
+const REVIEW_ACTIVITY_QUERY = /* GraphQL */ `
+  query ReviewActivity($q: String!, $first: Int!, $after: String) {
+    search(query: $q, type: ISSUE, first: $first, after: $after) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        __typename
+        ... on PullRequest {
+          number
+          title
+          url
+          author {
+            login
+            avatarUrl
+          }
+          reviews(first: 100) {
+            nodes {
+              state
+              submittedAt
+              author {
+                login
+                avatarUrl
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const REVIEW_SEARCH_PAGE_SIZE = 50;
+const REVIEW_SEARCH_MAX_PAGES = 2;
+
+/**
+ * Every pull request in a repo touched since `sinceIso`, with its reviews.
+ * Uses search (not `repository.pullRequests`) so merged and closed PRs are
+ * included -- most reviewed PRs are no longer open.
+ */
+export async function fetchRepoReviewActivity(
+  owner: string,
+  name: string,
+  sinceIso: string,
+): Promise<RepoReviewActivity> {
+  const q = [
+    `repo:${owner}/${name}`,
+    "is:pr",
+    `updated:>=${sinceIso}`,
+    "sort:updated-desc",
+  ].join(" ");
+
+  type SearchNode =
+    | (ReviewActivityPullRequest & { __typename: "PullRequest" })
+    | { __typename: string };
+
+  const pullRequests: ReviewActivityPullRequest[] = [];
+  let after: string | null = null;
+  let truncated = false;
+
+  for (let page = 0; page < REVIEW_SEARCH_MAX_PAGES; page++) {
+    const data: {
+      search: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        nodes: SearchNode[];
+      };
+    } = await graphql(REVIEW_ACTIVITY_QUERY, {
+      q,
+      first: REVIEW_SEARCH_PAGE_SIZE,
+      after,
+    });
+    for (const node of data.search.nodes) {
+      if (node.__typename === "PullRequest") {
+        pullRequests.push(node as ReviewActivityPullRequest);
+      }
+    }
+    if (!data.search.pageInfo.hasNextPage) break;
+    after = data.search.pageInfo.endCursor;
+    if (page === REVIEW_SEARCH_MAX_PAGES - 1) truncated = true;
+  }
+
+  return { nameWithOwner: `${owner}/${name}`, pullRequests, truncated };
+}

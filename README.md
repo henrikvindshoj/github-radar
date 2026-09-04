@@ -1,9 +1,10 @@
 # GitHub Radar
 
-A GoCD-inspired dashboard for personal use. Two views, switchable from the header:
+A GoCD-inspired dashboard for personal use. Three views, switchable from the header:
 
 - **Pull requests** — open PRs across a fixed list of repos, grouped by repo, with per-PR status (CI checks, review decision, mergeability).
 - **Pipelines** — recent GitHub Actions workflow runs across repos, so you can see at a glance which changes are deployed to PROD and which are still **awaiting deployment** or **running**.
+- **Top Reviewers** — a leaderboard ranking who reviewed the most pull requests over the last 24 hours / 7 days / 30 days, for everyone or for the members of one or more teams.
 
 Fully static React + TypeScript SPA. Talks directly to the GitHub GraphQL + REST APIs from the browser using a personal access token stored in `localStorage`. The monitored repos/pipelines are configured per browser and also stored in `localStorage`, so different users can run their own setup independently. No backend.
 
@@ -127,6 +128,20 @@ The per-repo header shows how many runs are still awaiting PROD, or "Up to date"
 
 The list is truncated to everything **up to and including the first run that reached PROD** — older runs are already shipped and hidden. `runsToShow` is only the upper bound fetched from GitHub; if PROD isn't reached within that many runs, all fetched runs are shown.
 
+## Top Reviewers
+
+Ranks reviewers across every repo in your configuration. No extra configuration -- it reuses the same repo list.
+
+- **Metric**: distinct pull requests reviewed in the timeframe. Multiple review rounds on the same PR count once; the total number of submitted reviews is shown in parentheses when it differs.
+- **Timeframe**: 24 hours / 7 days / 30 days, picked in the filter bar and remembered per browser.
+- **Teams**: the picker lists the teams from your config (hidden when `teams` is empty) as checkboxes. Pick one or several -- their members are pooled and ranked together, everyone else drops out. Every configured repo is still scanned, so members get credit for reviews anywhere, and shares/totals are relative to the selected teams. Per-repo `"team"` fields do not affect this view.
+- **Dependabot**: excluded by default. The "Include dependabot" toggle counts reviews on `dependabot[bot]` pull requests too; the footnote says how many PRs were skipped.
+- Self-reviews and pending (unsubmitted) reviews never count.
+- Closed and merged PRs are included -- most reviewed PRs are no longer open -- so this view issues its own GitHub search query per repo rather than reusing the Pull requests data.
+- Badges are derived, not configured: *Reigning* (rank 1), *On fire* (3+ PRs/day), *Everywhere* (5+ repos), *Rubber stamp* (only approvals), *Gatekeeper* (3+ change requests).
+
+Each repo is fetched with up to two pages of 50 pull requests. Very busy repos can exceed that, in which case a note tells you the counts are a lower bound.
+
 ## Scripts
 
 - `npm run dev` -- Vite dev server
@@ -140,6 +155,7 @@ The list is truncated to everything **up to and including the first run that rea
 - TanStack Query for fetching, caching, and 60s polling (paused on hidden tab)
 - One GraphQL query per repo, fired in parallel; per-repo errors are isolated
 - Status derivation lives in [`src/lib/status.ts`](src/lib/status.ts) and drives the colored status bar on each card
+- Review aggregation lives in [`src/lib/reviews.ts`](src/lib/reviews.ts) -- a pure fold from per-repo review activity to a ranked leaderboard
 
 ## Status semantics
 

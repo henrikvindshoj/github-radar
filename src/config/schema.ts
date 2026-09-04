@@ -70,6 +70,12 @@ export interface ResolvedPipeline {
   prodEnvironment: string;
 }
 
+/** A named team from the config, with its member logins lowercased. */
+export interface Team {
+  name: string;
+  members: ReadonlySet<string>;
+}
+
 export interface Repo {
   owner: string;
   name: string;
@@ -100,6 +106,8 @@ export interface PipelineGroup {
 export interface ResolvedConfig {
   groups: RepoGroup[];
   repos: Repo[];
+  /** Configured teams, sorted by name. */
+  teams: Team[];
   pipelineGroups: PipelineGroup[];
   pipelineTargets: PipelineTarget[];
 }
@@ -213,7 +221,11 @@ export function resolveConfig(parsed: Config): ResolvedConfig {
     (g) => g.targets,
   );
 
-  return { groups, repos, pipelineGroups, pipelineTargets };
+  const teams: Team[] = [...teamMembersByName.entries()]
+    .map(([name, members]) => ({ name, members }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return { groups, repos, teams, pipelineGroups, pipelineTargets };
 }
 
 /** The bundled configuration, used as the seed/default for new browsers. */

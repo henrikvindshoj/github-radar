@@ -1,9 +1,16 @@
 import { formatDistanceToNowStrict } from "date-fns";
-import { Settings, Radar, GitPullRequest, Rocket, SlidersHorizontal } from "lucide-react";
+import {
+  Settings,
+  Radar,
+  GitPullRequest,
+  Rocket,
+  Crown,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { RefreshControl } from "./RefreshControl";
 
-export type RadarView = "prs" | "pipelines";
+export type RadarView = "prs" | "pipelines" | "reviews";
 
 interface HeaderProps {
   view: RadarView;
@@ -30,7 +37,7 @@ function NavTab({ active, onClick, icon, label }: NavTabProps) {
       onClick={onClick}
       aria-pressed={active}
       className={
-        "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium leading-none transition-colors " +
+        "inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-xs font-medium leading-none transition-colors " +
         (active
           ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
           : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800")
@@ -75,7 +82,7 @@ export function Header({
           <h1 className="text-base font-semibold tracking-tight">GitHub Radar</h1>
         </div>
 
-        <nav className="ml-2 flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-900">
+        <nav className="ml-2 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900">
           <NavTab
             active={view === "prs"}
             onClick={() => onViewChange("prs")}
@@ -87,6 +94,12 @@ export function Header({
             onClick={() => onViewChange("pipelines")}
             icon={<Rocket className="h-3.5 w-3.5" />}
             label="Pipelines"
+          />
+          <NavTab
+            active={view === "reviews"}
+            onClick={() => onViewChange("reviews")}
+            icon={<Crown className="h-3.5 w-3.5" />}
+            label="Top Reviewers"
           />
         </nav>
 
