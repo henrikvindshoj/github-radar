@@ -15,6 +15,7 @@ export const REFRESH_OPTIONS: RefreshOption[] = [
   { label: "Off", ms: null },
   { label: "1m", ms: MINUTE },
   { label: "5m", ms: 5 * MINUTE },
+  { label: "10m", ms: 10 * MINUTE },
   { label: "15m", ms: 15 * MINUTE },
   { label: "30m", ms: 30 * MINUTE },
   { label: "1h", ms: HOUR },
@@ -22,7 +23,7 @@ export const REFRESH_OPTIONS: RefreshOption[] = [
   { label: "1d", ms: DAY },
 ];
 
-export const DEFAULT_INTERVAL_MS: number = MINUTE;
+export const DEFAULT_INTERVAL_MS: number = 10 * MINUTE;
 
 function isAllowedMs(ms: number | null): boolean {
   if (ms === null) return true;
@@ -33,9 +34,11 @@ const listeners = new Set<() => void>();
 let cache: number | null = null;
 let cacheLoaded = false;
 
-function read(): number | null {
+export function readRefreshInterval(
+  storage?: Pick<Storage, "getItem">,
+): number | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = (storage ?? localStorage).getItem(STORAGE_KEY);
     if (raw === null) return DEFAULT_INTERVAL_MS;
     if (raw === "off") return null;
     const n = Number(raw);
@@ -57,7 +60,7 @@ function write(ms: number | null): void {
 
 function getSnapshot(): number | null {
   if (!cacheLoaded) {
-    cache = read();
+    cache = readRefreshInterval();
     cacheLoaded = true;
   }
   return cache;
@@ -71,7 +74,7 @@ function subscribe(cb: () => void): () => void {
   listeners.add(cb);
   const onStorage = (e: StorageEvent) => {
     if (e.key === STORAGE_KEY) {
-      cache = read();
+      cache = readRefreshInterval();
       cacheLoaded = true;
       cb();
     }
@@ -81,6 +84,13 @@ function subscribe(cb: () => void): () => void {
     listeners.delete(cb);
     window.removeEventListener("storage", onStorage);
   };
+}
+
+export function refreshOption(value: number | null): RefreshOption {
+  return (
+    REFRESH_OPTIONS.find((option) => option.ms === value) ??
+    REFRESH_OPTIONS.find((option) => option.ms === DEFAULT_INTERVAL_MS)!
+  );
 }
 
 export function useRefreshInterval(): {
@@ -96,7 +106,6 @@ export function useRefreshInterval(): {
     write(ms);
     emit();
   }, []);
-  const option =
-    REFRESH_OPTIONS.find((o) => o.ms === value) ?? REFRESH_OPTIONS[1];
+  const option = refreshOption(value);
   return { value, set, option };
 }

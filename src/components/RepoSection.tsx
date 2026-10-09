@@ -11,7 +11,7 @@ interface RepoSectionProps {
 }
 
 export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
-  const { repo, query } = entry;
+  const { repo, query, progress, incomplete } = entry;
   const repoUrl = `https://github.com/${repo.owner}/${repo.name}`;
 
   const allPrs = query.data?.pullRequests.nodes ?? [];
@@ -43,6 +43,9 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
           <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" aria-label="refreshing" />
         )}
         <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto tabular-nums">
+          {progress && !progress.counting && !progress.countError && progress.total !== undefined && <span>{progress.loaded} / {progress.total} loaded · </span>}
+          {progress?.counting && <span>Counting · </span>}
+          {incomplete && allPrs.length > 0 && <span>Partial · </span>}
           {query.isSuccess
             ? filteredPrs.length === allPrs.length
               ? `${allPrs.length} open`
@@ -51,6 +54,7 @@ export function RepoSection({ entry, filters, viewer }: RepoSectionProps) {
         </span>
       </header>
 
+      {progress?.countError && <p className="text-xs text-slate-500">{progress.countError}</p>}
       {query.isError && (
         <div className="card p-4 flex items-start gap-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40">
           <AlertOctagon className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />

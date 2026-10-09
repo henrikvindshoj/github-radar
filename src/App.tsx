@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Header, type RadarView } from "./components/Header";
 import { Dashboard } from "./components/Dashboard";
 import { Pipelines } from "./components/Pipelines";
@@ -12,19 +12,35 @@ import {
   defaultPipelineFilters,
   type PipelineFilters,
 } from "./lib/pipelineFilters";
+import {
+  FILTERS_STORAGE_KEY,
+  PIPELINE_FILTERS_STORAGE_KEY,
+  readFilterPreferences,
+  writeFilterPreferences,
+} from "./lib/filterPreferences";
 
 export function App() {
   const token = useToken();
   const viewer = useViewer();
   const [view, setView] = useState<RadarView>("prs");
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(() =>
+    readFilterPreferences(FILTERS_STORAGE_KEY, defaultFilters),
+  );
   const [pipelineFilters, setPipelineFilters] = useState<PipelineFilters>(
-    defaultPipelineFilters,
+    () =>
+      readFilterPreferences(PIPELINE_FILTERS_STORAGE_KEY, defaultPipelineFilters),
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [summary, setSummary] = useState({ isFetching: false, lastUpdated: 0 });
   const [refreshSignal, setRefreshSignal] = useState(0);
+
+  useEffect(() => {
+    writeFilterPreferences(FILTERS_STORAGE_KEY, filters);
+  }, [filters]);
+  useEffect(() => {
+    writeFilterPreferences(PIPELINE_FILTERS_STORAGE_KEY, pipelineFilters);
+  }, [pipelineFilters]);
 
   const handleSummary = useCallback(
     (s: { isFetching: boolean; lastUpdated: number }) => {

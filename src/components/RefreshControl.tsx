@@ -43,9 +43,8 @@ export function RefreshControl({ isFetching, onRefresh }: RefreshControlProps) {
       <button
         type="button"
         onClick={onRefresh}
-        disabled={isFetching}
         className="inline-flex h-7 items-center justify-center gap-1 rounded-l-md border border-r-0 border-slate-300 bg-white px-2.5 text-xs font-medium leading-none shadow-sm hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
-        title="Refresh all repos now"
+        title="Queue a refresh of all visible repositories"
         aria-label="Refresh now"
       >
         {isFetching ? (
@@ -63,7 +62,7 @@ export function RefreshControl({ isFetching, onRefresh }: RefreshControlProps) {
         title={
           value === null
             ? "Auto-refresh is off"
-            : `Auto-refresh every ${option.label}`
+            : `Rolling refresh: start a new sweep every ${option.label}, or immediately when a slower sweep finishes`
         }
       >
         <span className="tabular-nums">{option.label}</span>

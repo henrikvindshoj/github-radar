@@ -31,13 +31,32 @@ export function derivePipelineState(run: WorkflowRun): PipelineState {
     return "awaiting";
   }
 
-  // queued, in_progress, requested
-  return "running";
+  if (status === "queued" || status === "in_progress" || status === "requested") {
+    return "running";
+  }
+  return "neutral";
 }
 
 /** A run that has not yet reached PROD but is still progressing toward it. */
 export function isPendingProd(state: PipelineState): boolean {
   return state === "awaiting" || state === "running";
+}
+
+/** Current pipeline state always comes from the newest unfiltered run. */
+export function latestPipelineState(runs: WorkflowRun[]): PipelineState | null {
+  return runs[0] ? derivePipelineState(runs[0]) : null;
+}
+
+export function summarizePipeline(runs: WorkflowRun[], prodEnvironment: string) {
+  const state = latestPipelineState(runs);
+  const label = state === "in_prod"
+    ? `Up to date in ${prodEnvironment}`
+    : state === "awaiting"
+      ? `1 awaiting ${prodEnvironment}`
+      : state === null
+        ? "No runs"
+        : pipelineLabel(state, prodEnvironment);
+  return { state, label };
 }
 
 /**

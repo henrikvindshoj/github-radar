@@ -96,10 +96,10 @@ export function Header({
             title={
               lastUpdated > 0
                 ? new Date(lastUpdated).toLocaleString()
-                : "No successful fetch yet"
+                : "No successful fetch yet; repositories update individually"
             }
           >
-            Updated {updatedLabel}
+            Latest update {updatedLabel}
           </span>
 
           <RefreshControl isFetching={isFetching} onRefresh={onRefresh} />

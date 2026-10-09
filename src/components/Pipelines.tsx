@@ -1,10 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAllPipelines, type PipelineQuery } from "../hooks/usePipelines";
 import { useConfig } from "../config/configStore";
 import {
-  hasPendingProd,
-  latestDeploymentFailing,
+  matchesPipelineStateFilters,
   matchesPipelineFilters,
   type PipelineFilters,
 } from "../lib/pipelineFilters";
@@ -41,7 +40,7 @@ export function Pipelines({
     return set;
   }, [isCollapsed, pipelineGroups]);
 
-  const entries = useAllPipelines(pipelineTargets, true, disabledKeys);
+  const { entries, busy, refresh } = useAllPipelines(pipelineTargets, true, disabledKeys);
 
   const entryByKey = useMemo(() => {
     const map = new Map<string, PipelineQuery>();
@@ -49,7 +48,7 @@ export function Pipelines({
     return map;
   }, [entries]);
 
-  const isFetching = entries.some((e) => e.query.isFetching);
+  const isFetching = busy;
   const lastUpdated = entries.reduce<number>((acc, e) => {
     const t = e.query.dataUpdatedAt;
     return t > acc ? t : acc;
@@ -59,13 +58,12 @@ export function Pipelines({
     onSummaryChange({ isFetching, lastUpdated });
   }, [isFetching, lastUpdated, onSummaryChange]);
 
+  const consumedRefresh = useRef(refreshSignal);
   useEffect(() => {
-    if (refreshSignal === 0) return;
-    for (const e of entries) {
-      if (disabledKeys.has(e.target.key)) continue;
-      e.query.refetch();
-    }
-  }, [refreshSignal]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (refreshSignal === consumedRefresh.current) return;
+    consumedRefresh.current = refreshSignal;
+    refresh();
+  }, [refreshSignal, refresh]);
 
   if (pipelineGroups.length === 0) {
     return (
@@ -139,8 +137,7 @@ function hasContentToRender(
   if (q.isPending || q.isError) return true;
   if (q.isSuccess) {
     const dataRuns = q.data?.runs ?? [];
-    if (filters.failingOnly && !latestDeploymentFailing(dataRuns)) return false;
-    if (filters.hideUpToDate && !hasPendingProd(dataRuns)) return false;
+    if (!matchesPipelineStateFilters(dataRuns, filters)) return false;
     const runs = runsUpToFirstProd(dataRuns);
     return runs.some((run) => matchesPipelineFilters(run, filters, viewer));
   }
