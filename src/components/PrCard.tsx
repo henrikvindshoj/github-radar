@@ -6,6 +6,8 @@ import { StatusFooter } from "./StatusFooter";
 
 interface PrCardProps {
   pr: PullRequestNode;
+  owner: string;
+  name: string;
 }
 
 function plusMinus(additions: number, deletions: number) {
@@ -18,7 +20,7 @@ function plusMinus(additions: number, deletions: number) {
   );
 }
 
-export function PrCard({ pr }: PrCardProps) {
+export function PrCard({ pr, owner, name }: PrCardProps) {
   const status = deriveStatus(pr);
   const age = formatDistanceToNowStrict(new Date(pr.createdAt), { addSuffix: true });
   const updated = formatDistanceToNowStrict(new Date(pr.updatedAt), { addSuffix: true });
@@ -91,7 +93,7 @@ export function PrCard({ pr }: PrCardProps) {
         </div>
       </div>
 
-      <StatusFooter status={status} />
+      <StatusFooter status={status} owner={owner} name={name} sha={pr.commits.nodes[0]?.commit.oid} prUrl={pr.url} />
     </article>
   );
 }

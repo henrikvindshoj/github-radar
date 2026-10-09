@@ -52,6 +52,7 @@ export interface PullRequestNode {
   commits: {
     nodes: Array<{
       commit: {
+        oid: string;
         statusCheckRollup: { state: CheckState } | null;
       };
     }>;
@@ -100,6 +101,7 @@ const PR_FIELDS = `
           commits(last: 1) {
             nodes {
               commit {
+                oid
                 statusCheckRollup {
                   state
                 }

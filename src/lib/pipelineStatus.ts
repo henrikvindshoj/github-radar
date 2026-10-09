@@ -69,6 +69,15 @@ export function runsUpToFirstProd<T extends WorkflowRun>(runs: T[]): T[] {
   return idx === -1 ? runs : runs.slice(0, idx + 1);
 }
 
+/** Keep both endpoints visible around the expandable, newest-first middle. */
+export function splitPipelineHistory<T extends WorkflowRun>(runs: T[]) {
+  return {
+    newest: runs[0],
+    middle: runs.slice(1, -1),
+    oldest: runs.length > 1 ? runs[runs.length - 1] : undefined,
+  };
+}
+
 export function pipelineColorClass(state: PipelineState): string {
   switch (state) {
     case "in_prod":

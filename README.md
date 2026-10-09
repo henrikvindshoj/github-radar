@@ -157,6 +157,6 @@ The default interval is **10 minutes**. On opening either view, Radar warms up w
 
 Existing cards stay visible during refresh. Partial pages update cards in place; counts never clear cached cards. New data updates them; closed PRs disappear after that repository finishes loading. Failed pages retain existing data. **Refresh** queues a sweep; **Off** stops periodic refresh. Filters and interval choices are remembered in this browser.
 
-Pipeline summaries use the latest run, counting one awaiting deployment per workflow/branch. Older matching runs start collapsed behind **Show older runs**.
+Pipeline summaries use the latest run, counting one awaiting deployment per workflow/branch. The newest and oldest/latest successful matching runs stay visible; intermediate matching runs start collapsed between them.
 
-PR cards show **Approved**, or **Ready to merge** when approval, passing CI and known mergeability agree. Failing/errored CI makes the bar red, including drafts. GitHub verifies final merge requirements.
+PR cards show **Approved**, or **Ready to merge** when approval, passing CI and known mergeability agree. Failing/errored CI makes the bar red, including drafts. GitHub verifies final merge requirements. Hover, focus or tap **Checks** for named results; details load only when opened and include check runs and commit statuses.

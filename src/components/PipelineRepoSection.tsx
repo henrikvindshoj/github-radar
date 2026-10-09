@@ -15,6 +15,7 @@ import {
 import {
   pipelineBadgeClass,
   runsUpToFirstProd,
+  splitPipelineHistory,
   summarizePipeline,
 } from "../lib/pipelineStatus";
 import { PipelineRunRow } from "./PipelineRunRow";
@@ -44,7 +45,7 @@ export function PipelineRepoSection({
     ? allRuns.filter((run) => matchesPipelineFilters(run, filters, viewer))
     : [];
   const summary = summarizePipeline(dataRuns, prodEnv);
-  const [newestRun, ...olderRuns] = filteredRuns;
+  const { newest: newestRun, middle: middleRuns, oldest: oldestRun } = splitPipelineHistory(filteredRuns);
 
   return (
     <section className="space-y-3">
@@ -131,18 +132,21 @@ export function PipelineRepoSection({
 
       {query.isSuccess && newestRun && (
         <div className="card divide-y divide-slate-200 overflow-hidden dark:divide-slate-800">
-          <PipelineRunRow run={newestRun} prodEnvironment={prodEnv} />
-          {olderRuns.length > 0 && (
+          <PipelineRunRow key={newestRun.id} run={newestRun} prodEnvironment={prodEnv} />
+          {middleRuns.length > 0 && (
             <details open={historyOpen} onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
               <summary className="cursor-pointer px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
-                Show {olderRuns.length} older {olderRuns.length === 1 ? "run" : "runs"}
+                {historyOpen ? "Hide" : "Show"} {middleRuns.length} intermediate {middleRuns.length === 1 ? "run" : "runs"}
               </summary>
               <div className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
-                {olderRuns.map((run) => (
+                {middleRuns.map((run) => (
                   <PipelineRunRow key={run.id} run={run} prodEnvironment={prodEnv} />
                 ))}
               </div>
             </details>
+          )}
+          {oldestRun && (
+            <PipelineRunRow key={oldestRun.id} run={oldestRun} prodEnvironment={prodEnv} />
           )}
         </div>
       )}

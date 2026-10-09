@@ -8,7 +8,7 @@ import {
   matchesPipelineFilters,
   matchesPipelineStateFilters,
 } from "../src/lib/pipelineFilters.ts";
-import { summarizePipeline, runsUpToFirstProd } from "../src/lib/pipelineStatus.ts";
+import { summarizePipeline, runsUpToFirstProd, splitPipelineHistory } from "../src/lib/pipelineStatus.ts";
 
 function run(id: number, status: string, conclusion: string | null = null): WorkflowRun {
   return {
@@ -68,4 +68,42 @@ test("empty pipelines do not claim a successful deployment", () => {
   assert.deepEqual(summarizePipeline([], "PROD"), { state: null, label: "No runs" });
   assert.equal(hasPendingProd([]), false);
   assert.equal(latestDeploymentFailing([]), false);
+});
+
+test("empty, single and two-run histories keep distinct visible endpoints", () => {
+  const newest = run(2, "waiting");
+  const oldest = run(1, "completed", "success");
+  assert.deepEqual(splitPipelineHistory([]), { newest: undefined, middle: [], oldest: undefined });
+  assert.deepEqual(splitPipelineHistory([newest]), { newest, middle: [], oldest: undefined });
+  assert.deepEqual(splitPipelineHistory([newest, oldest]), { newest, middle: [], oldest });
+});
+
+test("pipeline history shows the latest successful deployment below chronological intermediate runs", () => {
+  const runs = [run(5, "waiting"), run(4, "in_progress"), run(3, "completed", "failure"),
+    run(2, "completed", "success"), run(1, "completed", "success")];
+  const { newest, middle, oldest } = splitPipelineHistory(runsUpToFirstProd(runs));
+  assert.equal(newest?.id, 5);
+  assert.deepEqual(middle.map((item) => item.id), [4, 3]);
+  assert.equal(oldest?.id, 2);
+});
+
+test("history without a successful deployment retains the oldest fetched run", () => {
+  const runs = [run(3, "waiting"), run(2, "completed", "failure"), run(1, "waiting")];
+  const { newest, middle, oldest } = splitPipelineHistory(runsUpToFirstProd(runs));
+  assert.equal(newest?.id, 3);
+  assert.deepEqual(middle.map((item) => item.id), [2]);
+  assert.equal(oldest?.id, 1);
+});
+
+test("history endpoints use the retained filtered window without reviving excluded runs", () => {
+  const runs = [run(5, "waiting"), run(4, "waiting"), run(3, "waiting"),
+    run(2, "completed", "success"), run(1, "waiting")];
+  runs[0].actor.login = "other";
+  runs[3].actor.login = "other";
+  const filters = { ...defaultPipelineFilters, onlyMine: true };
+  const retained = runsUpToFirstProd(runs).filter((item) => matchesPipelineFilters(item, filters, "owner"));
+  const { newest, middle, oldest } = splitPipelineHistory(retained);
+  assert.equal(newest?.id, 4);
+  assert.deepEqual(middle, []);
+  assert.equal(oldest?.id, 3);
 });
