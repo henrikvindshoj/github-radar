@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ExternalLink,
   AlertOctagon,
@@ -7,14 +8,15 @@ import {
 } from "lucide-react";
 import type { PipelineQuery } from "../hooks/usePipelines";
 import {
-  latestDeploymentFailing,
   matchesPipelineFilters,
+  matchesPipelineStateFilters,
   type PipelineFilters,
 } from "../lib/pipelineFilters";
 import {
-  derivePipelineState,
-  isPendingProd,
+  pipelineBadgeClass,
   runsUpToFirstProd,
+  splitPipelineHistory,
+  summarizePipeline,
 } from "../lib/pipelineStatus";
 import { PipelineRunRow } from "./PipelineRunRow";
 import { EmptyState } from "./EmptyState";
@@ -32,19 +34,18 @@ export function PipelineRepoSection({
 }: PipelineRepoSectionProps) {
   const { repo, pipeline } = entry.target;
   const { query } = entry;
+  const [historyOpen, setHistoryOpen] = useState(false);
   const repoUrl = `https://github.com/${repo.owner}/${repo.name}`;
   const prodEnv = pipeline.prodEnvironment;
 
   const dataRuns = query.data?.runs ?? [];
-  const sectionVisible =
-    !filters.failingOnly || latestDeploymentFailing(dataRuns);
+  const sectionVisible = matchesPipelineStateFilters(dataRuns, filters);
   const allRuns = runsUpToFirstProd(dataRuns);
   const filteredRuns = sectionVisible
     ? allRuns.filter((run) => matchesPipelineFilters(run, filters, viewer))
     : [];
-  const pendingCount = allRuns.filter((run) =>
-    isPendingProd(derivePipelineState(run)),
-  ).length;
+  const summary = summarizePipeline(dataRuns, prodEnv);
+  const { newest: newestRun, middle: middleRuns, oldest: oldestRun } = splitPipelineHistory(filteredRuns);
 
   return (
     <section className="space-y-3">
@@ -79,16 +80,10 @@ export function PipelineRepoSection({
 
         {query.isSuccess && (
           <span className="ml-auto">
-            {pendingCount > 0 ? (
-              <span className="pill bg-status-changes/10 text-status-changes">
-                {pendingCount} awaiting {prodEnv}
-              </span>
-            ) : (
-              <span className="pill bg-status-success/10 text-status-success">
-                <CheckCircle2 className="h-3 w-3" />
-                Up to date in {prodEnv}
-              </span>
-            )}
+            <span className={`pill ${pipelineBadgeClass(summary.state ?? "neutral")}`}>
+              {summary.state === "in_prod" && <CheckCircle2 className="h-3 w-3" />}
+              {summary.label}
+            </span>
           </span>
         )}
       </header>
@@ -135,11 +130,24 @@ export function PipelineRepoSection({
         />
       )}
 
-      {query.isSuccess && filteredRuns.length > 0 && (
+      {query.isSuccess && newestRun && (
         <div className="card divide-y divide-slate-200 overflow-hidden dark:divide-slate-800">
-          {filteredRuns.map((run) => (
-            <PipelineRunRow key={run.id} run={run} prodEnvironment={prodEnv} />
-          ))}
+          <PipelineRunRow key={newestRun.id} run={newestRun} prodEnvironment={prodEnv} />
+          {middleRuns.length > 0 && (
+            <details open={historyOpen} onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
+              <summary className="cursor-pointer px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
+                {historyOpen ? "Hide" : "Show"} {middleRuns.length} intermediate {middleRuns.length === 1 ? "run" : "runs"}
+              </summary>
+              <div className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                {middleRuns.map((run) => (
+                  <PipelineRunRow key={run.id} run={run} prodEnvironment={prodEnv} />
+                ))}
+              </div>
+            </details>
+          )}
+          {oldestRun && (
+            <PipelineRunRow key={oldestRun.id} run={oldestRun} prodEnvironment={prodEnv} />
+          )}
         </div>
       )}
     </section>

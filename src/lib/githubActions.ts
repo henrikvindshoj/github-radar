@@ -1,35 +1,12 @@
-import { GitHubApiError } from "./github";
-import { getToken } from "./token";
+import { GitHubApiError, githubRequest } from "./githubRequest.ts";
+import { getToken } from "./token.ts";
 import type { ResolvedPipeline } from "../config/schema";
 
-const REST_ENDPOINT = "https://api.github.com";
-
-async function restGet<T>(path: string, token?: string): Promise<T> {
-  const effectiveToken = token ?? getToken();
-  if (!effectiveToken) {
-    throw new GitHubApiError("Missing GitHub token", 401);
-  }
-  const res = await fetch(`${REST_ENDPOINT}${path}`, {
+function restGet<T>(path: string, token: string, signal?: AbortSignal, initial = false): Promise<T> {
+  return githubRequest<T>(`https://api.github.com${path}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${effectiveToken}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
-  if (!res.ok) {
-    let body = "";
-    try {
-      body = await res.text();
-    } catch {
-      // ignore
-    }
-    throw new GitHubApiError(
-      `GitHub API ${res.status} ${res.statusText}${body ? `: ${body.slice(0, 200)}` : ""}`,
-      res.status,
-    );
-  }
-  return (await res.json()) as T;
+    headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+  }, token, signal, initial);
 }
 
 interface WorkflowSummary {
@@ -105,14 +82,18 @@ export async function fetchRepoPipeline(
   owner: string,
   name: string,
   pipeline: ResolvedPipeline,
+  token?: string,
+  signal?: AbortSignal,
+  initial = false,
 ): Promise<RepoPipeline> {
+  const effectiveToken = token ?? getToken() ?? "";
   const repoSummary = {
     nameWithOwner: `${owner}/${name}`,
     url: `https://github.com/${owner}/${name}`,
   };
 
   const workflowsData = await restGet<WorkflowsResponse>(
-    `/repos/${owner}/${name}/actions/workflows?per_page=100`,
+    `/repos/${owner}/${name}/actions/workflows?per_page=100`, effectiveToken, signal, initial,
   );
   const matched = matchWorkflow(workflowsData.workflows, pipeline.workflow);
   if (!matched) {
@@ -127,7 +108,7 @@ export async function fetchRepoPipeline(
     per_page: String(pipeline.runsToShow),
   });
   const runsData = await restGet<RunsResponse>(
-    `/repos/${owner}/${name}/actions/workflows/${matched.id}/runs?${params.toString()}`,
+    `/repos/${owner}/${name}/actions/workflows/${matched.id}/runs?${params.toString()}`, effectiveToken, signal, initial,
   );
 
   return {

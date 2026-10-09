@@ -18,6 +18,8 @@ export interface StatusBreakdown {
   review: ReviewDecision;
   mergeable: MergeableState;
   isDraft: boolean;
+  approved: boolean;
+  readyToMerge: boolean;
 }
 
 export function getCheckState(pr: PullRequestNode): CheckState | "NONE" {
@@ -30,16 +32,19 @@ export function deriveStatus(pr: PullRequestNode): StatusBreakdown {
   const review = pr.reviewDecision;
   const mergeable = pr.mergeable;
 
+  const approved = !pr.isDraft && review === "APPROVED";
+  const readyToMerge = approved && checks === "SUCCESS" && mergeable === "MERGEABLE";
+
   let overall: OverallStatus;
-  if (pr.isDraft) {
-    overall = "neutral";
-  } else if (checks === "FAILURE" || checks === "ERROR") {
+  if (checks === "FAILURE" || checks === "ERROR") {
     overall = "failure";
+  } else if (pr.isDraft) {
+    overall = "neutral";
   } else if (review === "CHANGES_REQUESTED") {
     overall = "changes_requested";
   } else if (checks === "PENDING" || checks === "EXPECTED") {
     overall = "pending";
-  } else if (checks === "SUCCESS" && review === "APPROVED") {
+  } else if (readyToMerge) {
     overall = "success";
   } else if (checks === "SUCCESS") {
     overall = "pending";
@@ -53,6 +58,8 @@ export function deriveStatus(pr: PullRequestNode): StatusBreakdown {
     review,
     mergeable,
     isDraft: pr.isDraft,
+    approved,
+    readyToMerge,
   };
 }
 

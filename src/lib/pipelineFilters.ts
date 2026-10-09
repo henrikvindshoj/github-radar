@@ -2,12 +2,12 @@ import type { WorkflowRun } from "./githubActions";
 import {
   derivePipelineState,
   isPendingProd,
-  runsUpToFirstProd,
-} from "./pipelineStatus";
+  latestPipelineState,
+} from "./pipelineStatus.ts";
 
 export interface PipelineFilters {
   search: string;
-  /** Only show runs that are not yet in PROD (awaiting / running). */
+  /** Only show pending pipelines and their awaiting / running runs. */
   pendingProdOnly: boolean;
   /** Only show pipelines whose most recent deployment failed. */
   failingOnly: boolean;
@@ -18,7 +18,7 @@ export interface PipelineFilters {
    * (typically dependabot-authored PRs).
    */
   notBump: boolean;
-  /** Hide pipelines that have nothing awaiting PROD (already up to date). */
+  /** Hide pipelines whose latest run deployed successfully. */
   hideUpToDate: boolean;
 }
 
@@ -27,18 +27,28 @@ export interface PipelineFilters {
  * newest-first (as returned by the GitHub API).
  */
 export function latestDeploymentFailing(runs: WorkflowRun[]): boolean {
-  const latest = runs[0];
-  return latest ? derivePipelineState(latest) === "failed" : false;
+  return latestPipelineState(runs) === "failed";
 }
 
 /**
- * Whether a pipeline has any run still awaiting / progressing toward PROD.
+ * Whether the latest run is awaiting / progressing toward PROD.
  * `runs` must be ordered newest-first (as returned by the GitHub API).
  */
 export function hasPendingProd(runs: WorkflowRun[]): boolean {
-  return runsUpToFirstProd(runs).some((run) =>
-    isPendingProd(derivePipelineState(run)),
-  );
+  const state = latestPipelineState(runs);
+  return state !== null && isPendingProd(state);
+}
+
+/** Pipeline-level filters use unfiltered runs, independently of row filters. */
+export function matchesPipelineStateFilters(
+  runs: WorkflowRun[],
+  filters: PipelineFilters,
+): boolean {
+  const state = latestPipelineState(runs);
+  if (filters.failingOnly && state !== "failed") return false;
+  if (filters.pendingProdOnly && !hasPendingProd(runs)) return false;
+  if (filters.hideUpToDate && state === "in_prod") return false;
+  return true;
 }
 
 export const defaultPipelineFilters: PipelineFilters = {

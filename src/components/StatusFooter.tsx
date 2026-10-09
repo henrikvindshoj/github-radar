@@ -7,11 +7,16 @@ import {
   GitMerge,
   GitPullRequestDraft,
 } from "lucide-react";
+import { PrChecks } from "./PrChecks";
 import type { StatusBreakdown } from "../lib/status";
 import { statusColorClass, statusLabel } from "../lib/status";
 
 interface StatusFooterProps {
   status: StatusBreakdown;
+  owner: string;
+  name: string;
+  sha?: string;
+  prUrl: string;
 }
 
 function CheckIcon({ state }: { state: StatusBreakdown["checks"] }) {
@@ -101,18 +106,14 @@ function mergeLabel(state: StatusBreakdown["mergeable"], isDraft: boolean): stri
   }
 }
 
-export function StatusFooter({ status }: StatusFooterProps) {
+export function StatusFooter({ status, owner, name, sha, prUrl }: StatusFooterProps) {
   return (
     <div className="mt-auto">
       <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800">
-        <div
-          className="flex items-center gap-1"
-          title={checksLabel(status.checks)}
-          aria-label={checksLabel(status.checks)}
-        >
+        <PrChecks owner={owner} name={name} sha={sha} prUrl={prUrl} label={checksLabel(status.checks)}>
           <CheckIcon state={status.checks} />
           <span className="hidden sm:inline">Checks</span>
-        </div>
+        </PrChecks>
         <div
           className="flex items-center gap-1"
           title={reviewLabel(status.review)}

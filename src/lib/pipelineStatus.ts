@@ -31,13 +31,32 @@ export function derivePipelineState(run: WorkflowRun): PipelineState {
     return "awaiting";
   }
 
-  // queued, in_progress, requested
-  return "running";
+  if (status === "queued" || status === "in_progress" || status === "requested") {
+    return "running";
+  }
+  return "neutral";
 }
 
 /** A run that has not yet reached PROD but is still progressing toward it. */
 export function isPendingProd(state: PipelineState): boolean {
   return state === "awaiting" || state === "running";
+}
+
+/** Current pipeline state always comes from the newest unfiltered run. */
+export function latestPipelineState(runs: WorkflowRun[]): PipelineState | null {
+  return runs[0] ? derivePipelineState(runs[0]) : null;
+}
+
+export function summarizePipeline(runs: WorkflowRun[], prodEnvironment: string) {
+  const state = latestPipelineState(runs);
+  const label = state === "in_prod"
+    ? `Up to date in ${prodEnvironment}`
+    : state === "awaiting"
+      ? `1 awaiting ${prodEnvironment}`
+      : state === null
+        ? "No runs"
+        : pipelineLabel(state, prodEnvironment);
+  return { state, label };
 }
 
 /**
@@ -48,6 +67,15 @@ export function isPendingProd(state: PipelineState): boolean {
 export function runsUpToFirstProd<T extends WorkflowRun>(runs: T[]): T[] {
   const idx = runs.findIndex((run) => derivePipelineState(run) === "in_prod");
   return idx === -1 ? runs : runs.slice(0, idx + 1);
+}
+
+/** Keep both endpoints visible around the expandable, newest-first middle. */
+export function splitPipelineHistory<T extends WorkflowRun>(runs: T[]) {
+  return {
+    newest: runs[0],
+    middle: runs.slice(1, -1),
+    oldest: runs.length > 1 ? runs[runs.length - 1] : undefined,
+  };
 }
 
 export function pipelineColorClass(state: PipelineState): string {

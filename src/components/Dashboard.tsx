@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useAllPullRequests, type RepoQuery } from "../hooks/usePullRequests";
 import { repoKey } from "../config/schema";
@@ -33,7 +33,7 @@ export function Dashboard({
     return set;
   }, [isCollapsed, groups]);
 
-  const entries = useAllPullRequests(repos, disabledKeys);
+  const { entries, busy, refresh } = useAllPullRequests(repos, disabledKeys);
 
   const entryByKey = useMemo(() => {
     const map = new Map<string, RepoQuery>();
@@ -41,7 +41,7 @@ export function Dashboard({
     return map;
   }, [entries]);
 
-  const isFetching = entries.some((e) => e.query.isFetching);
+  const isFetching = busy;
   const lastUpdated = entries.reduce<number>((acc, e) => {
     const t = e.query.dataUpdatedAt;
     return t > acc ? t : acc;
@@ -51,13 +51,12 @@ export function Dashboard({
     onSummaryChange({ isFetching, lastUpdated });
   }, [isFetching, lastUpdated, onSummaryChange]);
 
+  const consumedRefresh = useRef(refreshSignal);
   useEffect(() => {
-    if (refreshSignal === 0) return;
-    for (const e of entries) {
-      if (disabledKeys.has(repoKey(e.repo))) continue;
-      e.query.refetch();
-    }
-  }, [refreshSignal]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (refreshSignal === consumedRefresh.current) return;
+    consumedRefresh.current = refreshSignal;
+    refresh();
+  }, [refreshSignal, refresh]);
 
   return (
     <div className="space-y-10">
@@ -119,8 +118,7 @@ function hasContentToRender(
   viewer: string | null,
 ): boolean {
   const q = entry.query;
-  if (q.isPending || q.isError) return true;
-  if (q.isSuccess) {
+  if (q.data) {
     const nodes = q.data?.pullRequests.nodes ?? [];
     return nodes.some((pr) => matchesFilters(pr, filters, viewer));
   }

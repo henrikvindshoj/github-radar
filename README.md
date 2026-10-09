@@ -137,8 +137,8 @@ The list is truncated to everything **up to and including the first run that rea
 ## Architecture
 
 - Single-page React app, no router
-- TanStack Query for fetching, caching, and 60s polling (paused on hidden tab)
-- One GraphQL query per repo, fired in parallel; per-repo errors are isolated
+- TanStack Query for caching; one paced rolling queue refreshes the active view (paused on hidden tabs)
+- Lightweight count queries followed by 25-PR cursor pages, rotated across repos; per-repo errors are isolated
 - Status derivation lives in [`src/lib/status.ts`](src/lib/status.ts) and drives the colored status bar on each card
 
 ## Status semantics
@@ -150,3 +150,13 @@ The list is truncated to everything **up to and including the first run that rea
 | red | Any required check failing |
 | orange | Changes requested by reviewer |
 | gray | Draft, or no signals available |
+
+## Rolling refresh
+
+The default interval is **10 minutes**. On opening either view, Radar warms up with up to four targets in parallel: the first 25 open PRs per repository or the configured pipeline history. It then continues every remaining page in the background. Later sweeps count open PRs first and rotate 25-PR pages across repositories until all finish. If a sweep takes longer than the interval, the next starts immediately; otherwise it waits the remaining time. GitHub rate limits can delay progress. There is no 100-PR total cap.
+
+Existing cards stay visible during refresh. Partial pages update cards in place; counts never clear cached cards. New data updates them; closed PRs disappear after that repository finishes loading. Failed pages retain existing data. **Refresh** queues a sweep; **Off** stops periodic refresh. Filters and interval choices are remembered in this browser.
+
+Pipeline summaries use the latest run, counting one awaiting deployment per workflow/branch. The newest and oldest/latest successful matching runs stay visible; intermediate matching runs start collapsed between them.
+
+PR cards show **Approved**, or **Ready to merge** when approval, passing CI and known mergeability agree. Failing/errored CI makes the bar red, including drafts. GitHub verifies final merge requirements. Hover, focus or tap **Checks** for named results; details load only when opened and include check runs and commit statuses.
