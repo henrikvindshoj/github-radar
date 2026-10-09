@@ -127,3 +127,13 @@ test('all initial workers resume after the tab hides midway through warmup', asy
     await warmup;assert.deepEqual(started,[0,1,2,3,4,5,6]);
   } finally {controller.abort();Reflect.deleteProperty(globalThis,'document');}
 });
+
+test('partial refresh updates cards in place and appends new IDs without page-by-page reshuffling', async () => {
+  const {mergeNodes}=await import('../src/lib/rollingRefresh.ts');
+  const old=[{id:'a',state:'old'},{id:'b',state:'old'},{id:'c',state:'old'}];
+  const page=[{id:'c',state:'new'},{id:'d',state:'new'}];
+  const partial=mergeNodes(old,page,false);
+  assert.deepEqual(partial.map(n=>n.id),['a','b','c','d']);
+  assert.equal(partial[2].state,'new');
+  assert.deepEqual(mergeNodes(partial,page,true).map(n=>n.id),['c','d']);
+});

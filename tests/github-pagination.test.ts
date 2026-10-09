@@ -3,8 +3,74 @@ import assert from "node:assert/strict";
 import { fetchPullRequestCounts, fetchPullRequestPage, fetchViewer, GitHubApiError } from "../src/lib/github.ts";
 import { createGitHubTransport } from "../src/lib/githubRequest.ts";
 import { fetchRepoPipeline } from "../src/lib/githubActions.ts";
+import { runInitialBurst, runSweep, type RollingTarget } from "../src/lib/rollingRefresh.ts";
 
 const response = (body: unknown, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers });
+
+test("pipeline warmup bursts both nested REST requests, then refreshes serially", async () => {
+  const original = globalThis.fetch;
+  const calls: Array<{ url: string; authorization: string | null; signal?: AbortSignal | null; started: number }> = [];
+  const replies: Array<() => void> = [];
+  let active = 0, maximum = 0, releaseImmediately = false;
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    calls.push({ url, authorization: new Headers(init?.headers).get("Authorization"), signal: init?.signal, started: Date.now() });
+    maximum = Math.max(maximum, ++active);
+    if (!releaseImmediately) await new Promise<void>(resolve => replies.push(resolve));
+    active--;
+    return url.includes("/runs?") ? response({ workflow_runs: [] })
+      : response({ workflows: [{ id: 1, name: "Build", path: ".github/workflows/build.yml" }] });
+  };
+  const controller = new AbortController();
+  const targets: RollingTarget[] = Array.from({ length: 4 }, (_, index) => ({
+    key: String(index), create: () => async (signal, initial) => ({ done: true,
+      data: await fetchRepoPipeline("o", `r${index}`, { workflow: "Build", branch: "main", runsToShow: 5 }, "pipeline-captured", signal, initial),
+    }),
+  }));
+  const initial = runInitialBurst(targets, { signal: controller.signal, onUpdate: () => {} });
+  const waitForCalls = async (count: number) => {
+    const deadline = Date.now() + 1800;
+    while (calls.length < count && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+    assert.equal(calls.length, count, "all four nested requests should start before any response completes");
+  };
+  try {
+    await waitForCalls(4);
+    assert.ok(calls.every(call => !call.url.includes("/runs?")));
+    replies.splice(0).forEach(resolve => resolve());
+    await waitForCalls(8);
+    assert.equal(maximum, 4);
+    assert.ok(calls.slice(4).every(call => call.url.includes("/runs?") && call.url.includes("per_page=5")));
+    releaseImmediately = true;
+    replies.splice(0).forEach(resolve => resolve());
+    assert.deepEqual(await initial, []);
+    const before = calls.length;
+    await runSweep(targets.slice(0, 2), { signal: controller.signal, onUpdate: () => {} });
+    for (let index = before; index < calls.length; index++) {
+      assert.ok(calls[index].started - calls[index - 1].started >= 990, "later workflow and run requests retain normal pacing");
+    }
+    assert.ok(calls.every(call => call.authorization === "Bearer pipeline-captured" && call.signal === controller.signal));
+    controller.abort();
+    const count = calls.length;
+    await assert.rejects(fetchRepoPipeline("o", "r", { workflow: "Build", branch: "main", runsToShow: 5 }, "pipeline-captured", controller.signal, true), { name: "AbortError" });
+    assert.equal(calls.length, count);
+    const nestedAbort = new AbortController();
+    let abortCalls = 0;
+    globalThis.fetch = async (input, init) => {
+      abortCalls++;
+      assert.ok(String(input).includes("/actions/workflows?"));
+      assert.equal(init?.signal, nestedAbort.signal);
+      nestedAbort.abort();
+      return response({ workflows: [{ id: 1, name: "Build", path: ".github/workflows/build.yml" }] });
+    };
+    await assert.rejects(fetchRepoPipeline("o", "r", { workflow: "Build", branch: "main", runsToShow: 5 }, "pipeline-captured", nestedAbort.signal, true), { name: "AbortError" });
+    assert.equal(abortCalls, 1, "aborted workflow work cannot start a nested run request");
+  } finally {
+    releaseImmediately = true;
+    replies.splice(0).forEach(resolve => resolve());
+    await initial;
+    globalThis.fetch = original;
+  }
+});
 
 test("shared transport serializes starts, honors secondary cooldown, and aborts queued work", async () => {
   let now = 0;

@@ -41,7 +41,6 @@ export function useAllPullRequests(repos: Repo[], disabledKeys?: ReadonlySet<str
     create(initial = false) {
       const count = initial ? undefined : counts.current.get(d.key);
       const summary = { nameWithOwner: repoKey(d.repo), url: `https://github.com/${repoKey(d.repo)}` };
-      if (count === 0) return async () => ({ done: true, data: { ...summary, pullRequests: { nodes: [] } }, progress: { loaded: 0, total: 0, counting: false } });
       let overflow = Boolean(d.members && count !== undefined && count > 1000);
       let restartCursor = false;
       const authors = new Set(d.members?.map(m => m.toLowerCase()));

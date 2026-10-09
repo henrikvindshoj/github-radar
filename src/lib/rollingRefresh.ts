@@ -111,8 +111,8 @@ export function createPagedLoad<T extends { id: string }>(
 /** Keep displayed identities until a complete replacement can safely remove absent items. */
 export function mergeNodes<T extends { id: string }>(previous: readonly T[], incoming: readonly T[], complete: boolean): T[] {
   if (complete) return [...incoming];
-  const merged = new Map(incoming.map(node => [node.id, node]));
-  for (const node of previous) if (!merged.has(node.id)) merged.set(node.id, node);
+  const merged = new Map(previous.map(node => [node.id, node]));
+  for (const node of incoming) merged.set(node.id, node);
   return [...merged.values()];
 }
 

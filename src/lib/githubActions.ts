@@ -2,11 +2,11 @@ import { GitHubApiError, githubRequest } from "./githubRequest.ts";
 import { getToken } from "./token.ts";
 import type { ResolvedPipeline } from "../config/schema";
 
-function restGet<T>(path: string, token: string, signal?: AbortSignal): Promise<T> {
+function restGet<T>(path: string, token: string, signal?: AbortSignal, initial = false): Promise<T> {
   return githubRequest<T>(`https://api.github.com${path}`, {
     method: "GET",
     headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
-  }, token, signal);
+  }, token, signal, initial);
 }
 
 interface WorkflowSummary {
@@ -84,6 +84,7 @@ export async function fetchRepoPipeline(
   pipeline: ResolvedPipeline,
   token?: string,
   signal?: AbortSignal,
+  initial = false,
 ): Promise<RepoPipeline> {
   const effectiveToken = token ?? getToken() ?? "";
   const repoSummary = {
@@ -92,7 +93,7 @@ export async function fetchRepoPipeline(
   };
 
   const workflowsData = await restGet<WorkflowsResponse>(
-    `/repos/${owner}/${name}/actions/workflows?per_page=100`, effectiveToken, signal,
+    `/repos/${owner}/${name}/actions/workflows?per_page=100`, effectiveToken, signal, initial,
   );
   const matched = matchWorkflow(workflowsData.workflows, pipeline.workflow);
   if (!matched) {
@@ -107,7 +108,7 @@ export async function fetchRepoPipeline(
     per_page: String(pipeline.runsToShow),
   });
   const runsData = await restGet<RunsResponse>(
-    `/repos/${owner}/${name}/actions/workflows/${matched.id}/runs?${params.toString()}`, effectiveToken, signal,
+    `/repos/${owner}/${name}/actions/workflows/${matched.id}/runs?${params.toString()}`, effectiveToken, signal, initial,
   );
 
   return {

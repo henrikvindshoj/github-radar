@@ -153,8 +153,10 @@ The list is truncated to everything **up to and including the first run that rea
 
 ## Rolling refresh
 
-The default interval is **10 minutes**. On opening, Radar quickly loads the first 25 open PRs per repository with up to four requests in parallel. It then continues every remaining page in the background. Later sweeps count open PRs first and rotate 25-PR pages across repositories until all finish. If a sweep takes longer than the interval, the next starts immediately; otherwise it waits the remaining time. GitHub rate limits can delay progress. There is no 100-PR total cap.
+The default interval is **10 minutes**. On opening either view, Radar warms up with up to four targets in parallel: the first 25 open PRs per repository or the configured pipeline history. It then continues every remaining page in the background. Later sweeps count open PRs first and rotate 25-PR pages across repositories until all finish. If a sweep takes longer than the interval, the next starts immediately; otherwise it waits the remaining time. GitHub rate limits can delay progress. There is no 100-PR total cap.
 
-Existing cards stay visible during refresh. New data updates them; closed PRs disappear after that repository finishes loading. Failed pages retain existing data. **Refresh** queues a sweep; **Off** stops periodic refresh. Filters and interval choices are remembered in this browser.
+Existing cards stay visible during refresh. Partial pages update cards in place; counts never clear cached cards. New data updates them; closed PRs disappear after that repository finishes loading. Failed pages retain existing data. **Refresh** queues a sweep; **Off** stops periodic refresh. Filters and interval choices are remembered in this browser.
 
 Pipeline summaries use the latest run, counting one awaiting deployment per workflow/branch. Older matching runs start collapsed behind **Show older runs**.
+
+PR cards show **Approved**, or **Ready to merge** when approval, passing CI and known mergeability agree. Failing/errored CI makes the bar red, including drafts. GitHub verifies final merge requirements.

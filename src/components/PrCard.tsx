@@ -1,5 +1,5 @@
 import { formatDistanceToNowStrict } from "date-fns";
-import { GitBranch, MessageSquare, ExternalLink } from "lucide-react";
+import { GitBranch, MessageSquare, ExternalLink, CheckCircle2, GitMerge } from "lucide-react";
 import type { PullRequestNode } from "../lib/github";
 import { deriveStatus } from "../lib/status";
 import { StatusFooter } from "./StatusFooter";
@@ -50,6 +50,13 @@ export function PrCard({ pr }: PrCardProps) {
             <span className="font-mono">#{pr.number}</span>
             <span aria-hidden>&middot;</span>
             <span className="truncate">{pr.author?.login ?? "unknown"}</span>
+            {status.approved && (
+              <span className="pill bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                title={status.readyToMerge ? "Approved, checks passing and mergeable; GitHub verifies final merge requirements" : "Review approved; check CI and merge status before merging"}>
+                {status.readyToMerge ? <GitMerge className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                {status.readyToMerge ? "Ready to merge" : "Approved"}
+              </span>
+            )}
             {pr.isDraft && (
               <span className="pill bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 Draft

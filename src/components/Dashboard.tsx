@@ -118,9 +118,7 @@ function hasContentToRender(
   viewer: string | null,
 ): boolean {
   const q = entry.query;
-  if (entry.incomplete || entry.progress?.counting || q.isFetching) return true;
-  if (q.isPending || q.isError) return true;
-  if (q.isSuccess) {
+  if (q.data) {
     const nodes = q.data?.pullRequests.nodes ?? [];
     return nodes.some((pr) => matchesFilters(pr, filters, viewer));
   }

@@ -22,9 +22,9 @@ export function useAllPipelines(targets: PipelineTarget[], enabled: boolean, dis
     queryFn: async (): Promise<RepoPipeline> => { throw new Error('Use rolling refresh'); },
   })) });
   const jobs = useMemo<RollingTarget[]>(() => descriptors.filter(d => enabled && !disabledKeys?.has(d.target.key)).map(d => ({
-    key: d.key, create: () => async signal => ({ done: true, data: await fetchRepoPipeline(d.target.repo.owner, d.target.repo.name, d.target.pipeline, token ?? undefined, signal) }),
+    key: d.key, create: () => async (signal, initial) => ({ done: true, data: await fetchRepoPipeline(d.target.repo.owner, d.target.repo.name, d.target.pipeline, token ?? undefined, signal, initial) }),
   })), [descriptors, enabled, disabledKeys, token]);
-  const { states, busy, refresh } = useRollingRefresh({ targets: jobs, interval, token,
+  const { states, busy, refresh } = useRollingRefresh({ targets: jobs, interval, token, initialBurst: true,
     onComplete(key, data) { const d = descriptors.find(d => d.key === key); if (d) client.setQueryData(d.queryKey, data); },
   });
   const entries: PipelineQuery[] = descriptors.map((d, i) => {
