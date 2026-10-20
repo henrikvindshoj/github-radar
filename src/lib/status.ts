@@ -19,6 +19,7 @@ export interface StatusBreakdown {
   mergeable: MergeableState;
   isDraft: boolean;
   approved: boolean;
+  approvedByViewer: boolean;
   readyToMerge: boolean;
 }
 
@@ -59,6 +60,7 @@ export function deriveStatus(pr: PullRequestNode): StatusBreakdown {
     mergeable,
     isDraft: pr.isDraft,
     approved,
+    approvedByViewer: (pr.viewerApprovals?.totalCount ?? 0) > 0,
     readyToMerge,
   };
 }

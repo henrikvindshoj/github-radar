@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { fetchPullRequestCounts, fetchPullRequestPage, type PullRequestNode, type RepoPullRequests } from '../lib/github';
-import { useToken } from '../lib/token';
+import { useToken, useViewer } from '../lib/token';
 import { useRefreshInterval } from '../lib/refreshInterval';
 import { repoKey, type Repo } from '../config/schema';
 import { createPagedLoad, mergeNodes, type LoadProgress, type RollingTarget } from '../lib/rollingRefresh';
@@ -25,12 +25,13 @@ export interface RepoQuery {
 }
 export function useAllPullRequests(repos: Repo[], disabledKeys?: ReadonlySet<string>) {
   const token = useToken(), auth = useAuthScope(token), client = useQueryClient();
+  const viewer = useViewer();
   const { value: interval } = useRefreshInterval();
   const descriptors = useMemo(() => repos.map(repo => {
     const members = repo.teamMembers ? [...repo.teamMembers].sort() : undefined;
-    const queryKey = ['repo-prs', auth, repo.owner, repo.name, members ?? null];
+    const queryKey = ['repo-prs', auth, viewer, repo.owner, repo.name, members ?? null];
     return { repo, members, queryKey, key: JSON.stringify(queryKey) };
-  }), [repos, auth]);
+  }), [repos, auth, viewer]);
   const observers = useQueries({ queries: descriptors.map(d => ({
     queryKey: d.queryKey, enabled: false, refetchOnWindowFocus: false, refetchOnReconnect: false,
     retry: false, queryFn: async (): Promise<RepoPullRequests> => { throw new Error('Use rolling refresh'); },
@@ -46,10 +47,10 @@ export function useAllPullRequests(repos: Repo[], disabledKeys?: ReadonlySet<str
       const authors = new Set(d.members?.map(m => m.toLowerCase()));
       const step = createPagedLoad<PullRequestNode>(
         async (cursor, signal, initial) => {
-          let page = await fetchPullRequestPage(d.repo.owner, d.repo.name, restartCursor ? null : cursor, overflow ? undefined : d.members, token ?? undefined, signal, initial);
+          let page = await fetchPullRequestPage(d.repo.owner, d.repo.name, restartCursor ? null : cursor, overflow ? undefined : d.members, token ?? undefined, signal, initial, viewer);
           if (!overflow && d.members && page.totalCount > 1000) {
             overflow = true; restartCursor = true;
-            page = await fetchPullRequestPage(d.repo.owner, d.repo.name, null, undefined, token ?? undefined, signal, initial);
+            page = await fetchPullRequestPage(d.repo.owner, d.repo.name, null, undefined, token ?? undefined, signal, initial, viewer);
           }
           const restart = restartCursor;
           restartCursor = false;
@@ -63,7 +64,7 @@ export function useAllPullRequests(repos: Repo[], disabledKeys?: ReadonlySet<str
           data: { ...summary, pullRequests: { nodes: update.data as PullRequestNode[] } } };
       };
     },
-  })), [descriptors, disabledKeys, token]);
+  })), [descriptors, disabledKeys, token, viewer]);
   const { states, busy, refresh } = useRollingRefresh({ targets, interval, token, initialBurst: true,
     async prepare(keys, signal, update) {
       const selected = descriptors.filter(d => keys.has(d.key));

@@ -47,6 +47,8 @@ export interface PullRequestNode {
   baseRefName: string;
   mergeable: MergeableState;
   reviewDecision: ReviewDecision;
+  viewerActiveReviews?: { totalCount: number };
+  viewerApprovals?: { totalCount: number };
   additions: number;
   deletions: number;
   commits: {
@@ -96,6 +98,12 @@ const PR_FIELDS = `
           baseRefName
           mergeable
           reviewDecision
+          viewerActiveReviews: reviews(author: $viewer, states: [APPROVED, CHANGES_REQUESTED]) @include(if: $viewerKnown) {
+            totalCount
+          }
+          viewerApprovals: reviews(author: $viewer, states: [APPROVED]) @include(if: $viewerKnown) {
+            totalCount
+          }
           additions
           deletions
           commits(last: 1) {
@@ -114,7 +122,7 @@ const PR_FIELDS = `
 `;
 
 function teamSearch(owner: string, name: string, members: readonly string[]): string {
-  return [`repo:${owner}/${name}`, "is:pr", "is:open", "sort:updated-desc", ...members.map(m => `author:${m}`)].join(" ");
+  return [`repo:${owner}/${name}`, "is:pr", "is:open", "archived:false", "sort:updated-desc", ...members.map(m => `author:${m}`)].join(" ");
 }
 
 export async function fetchPullRequestCounts(targets: readonly PullRequestCountTarget[], token: string, signal?: AbortSignal): Promise<Record<string, number>> {
@@ -134,47 +142,49 @@ export async function fetchPullRequestCounts(targets: readonly PullRequestCountT
       } else {
         declarations.push(`$owner${index}: String!`, `$name${index}: String!`);
         variables[`owner${index}`] = target.owner; variables[`name${index}`] = target.name;
-        selections.push(`r${index}: repository(owner: $owner${index}, name: $name${index}) { pullRequests(states: OPEN) { totalCount } }`);
+        selections.push(`r${index}: repository(owner: $owner${index}, name: $name${index}) { isArchived pullRequests(states: OPEN) { totalCount } }`);
       }
     });
     if (!selections.length) continue;
-    const data = await graphql<Record<string, { issueCount?: number; pullRequests?: { totalCount: number } } | null>>(`query PullRequestCounts(${declarations.join(", ")}) { ${selections.join("\n")} }`, variables, token, signal);
+    const data = await graphql<Record<string, { isArchived?: boolean; issueCount?: number; pullRequests?: { totalCount: number } } | null>>(`query PullRequestCounts(${declarations.join(", ")}) { ${selections.join("\n")} }`, variables, token, signal);
     batch.forEach((target, index) => {
       if (target.members?.length === 0) return;
       const result = data[`r${index}`];
-      const count = target.members ? result?.issueCount : result?.pullRequests?.totalCount;
+      const count = target.members ? result?.issueCount : result?.isArchived ? 0 : result?.pullRequests?.totalCount;
       if (typeof count === "number") counts[`${target.owner}/${target.name}`] = count;
     });
   }
   return counts;
 }
 
-export async function fetchPullRequestPage(owner: string, name: string, cursor: string | null, members?: readonly string[], token?: string, signal?: AbortSignal, initial = false): Promise<PullRequestPage> {
+export async function fetchPullRequestPage(owner: string, name: string, cursor: string | null, members?: readonly string[], token?: string, signal?: AbortSignal, initial = false, viewer: string | null = null): Promise<PullRequestPage> {
   signal?.throwIfAborted();
   const effectiveToken = token ?? getToken() ?? "";
+  const reviewVariables = { viewer, viewerKnown: Boolean(viewer) };
   const summary = { nameWithOwner: `${owner}/${name}`, url: `https://github.com/${owner}/${name}` };
   if (members) {
     if (!members.length) return { ...summary, nodes: [], totalCount: 0, pageInfo: { hasNextPage: false, endCursor: null } };
     type SearchNode = (PullRequestNode & { __typename: "PullRequest" }) | { __typename: string };
     const data = await graphql<{ search: { nodes: SearchNode[]; issueCount: number; pageInfo: PullRequestPage["pageInfo"] } }>(`
-      query TeamPRPage($q: String!, $cursor: String) {
+      query TeamPRPage($q: String!, $cursor: String, $viewer: String, $viewerKnown: Boolean!) {
         search(query: $q, type: ISSUE, first: 25, after: $cursor) {
           issueCount pageInfo { hasNextPage endCursor }
           nodes { __typename ... on PullRequest { ${PR_FIELDS} } }
         }
-      }`, { q: teamSearch(owner, name, members), cursor }, effectiveToken, signal, initial);
+      }`, { q: teamSearch(owner, name, members), cursor, ...reviewVariables }, effectiveToken, signal, initial);
     return { ...summary, nodes: data.search.nodes.filter((node): node is PullRequestNode & { __typename: "PullRequest" } => node.__typename === "PullRequest"), totalCount: data.search.issueCount, pageInfo: data.search.pageInfo };
   }
-  const data = await graphql<{ repository: { nameWithOwner: string; url: string; pullRequests: { nodes: PullRequestNode[]; totalCount: number; pageInfo: PullRequestPage["pageInfo"] } } | null }>(`
-    query RepoPRPage($owner: String!, $name: String!, $cursor: String) {
+  const data = await graphql<{ repository: { isArchived: boolean; nameWithOwner: string; url: string; pullRequests: { nodes: PullRequestNode[]; totalCount: number; pageInfo: PullRequestPage["pageInfo"] } } | null }>(`
+    query RepoPRPage($owner: String!, $name: String!, $cursor: String, $viewer: String, $viewerKnown: Boolean!) {
       repository(owner: $owner, name: $name) {
-        nameWithOwner url
+        nameWithOwner url isArchived
         pullRequests(states: OPEN, first: 25, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
           totalCount pageInfo { hasNextPage endCursor }
           nodes { ${PR_FIELDS} }
         }
       }
-    }`, { owner, name, cursor }, effectiveToken, signal, initial);
+    }`, { owner, name, cursor, ...reviewVariables }, effectiveToken, signal, initial);
   if (!data.repository) throw new GitHubApiError(`Repository not found: ${owner}/${name}`, 404);
+  if (data.repository.isArchived) return { ...summary, nodes: [], totalCount: 0, pageInfo: { hasNextPage: false, endCursor: null } };
   return { nameWithOwner: data.repository.nameWithOwner, url: data.repository.url, ...data.repository.pullRequests };
 }

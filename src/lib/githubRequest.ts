@@ -26,18 +26,6 @@ function wait(milliseconds: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-export async function waitForVisibility(signal?: AbortSignal): Promise<void> {
-  if (typeof document === "undefined" || !document.hidden) return;
-  await new Promise<void>((resolve, reject) => {
-    signal?.throwIfAborted();
-    const cleanup = () => { document.removeEventListener("visibilitychange", visible); signal?.removeEventListener("abort", abort); };
-    const visible = () => { if (!document.hidden) { cleanup(); resolve(); } };
-    const abort = () => { cleanup(); reject(signal?.reason); };
-    document.addEventListener("visibilitychange", visible);
-    signal?.addEventListener("abort", abort, { once: true });
-  });
-}
-
 function headerCooldown(headers: Headers, now: number): number {
   const retry = headers.get("retry-after");
   const seconds = retry === null ? NaN : Number(retry);
@@ -79,14 +67,11 @@ export function createGitHubTransport(overrides: Partial<TransportRuntime> = {})
     const reservation = tail.then(async () => {
       await waitForSlot(initial, signal);
       signal?.throwIfAborted();
-      await waitForVisibility(signal);
       let delay = Math.max(lastStart + (initial ? 250 : 1000), cooldownUntil) - runtime.now();
       while (delay > 0) {
         await runtime.wait(delay, signal);
-        await waitForVisibility(signal);
         delay = Math.max(lastStart + (initial ? 250 : 1000), cooldownUntil) - runtime.now();
       }
-      await waitForVisibility(signal);
       signal?.throwIfAborted();
       lastStart = runtime.now();
       active++;

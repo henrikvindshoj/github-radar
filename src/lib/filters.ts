@@ -1,5 +1,4 @@
 import type { PullRequestNode } from "./github";
-import { deriveStatus } from "./status";
 
 export interface Filters {
   search: string;
@@ -22,16 +21,16 @@ export function matchesFilters(
   filters: Filters,
   viewer: string | null,
 ): boolean {
+  const isMine = Boolean(viewer && pr.author?.login.toLowerCase() === viewer.toLowerCase());
   if (filters.hideDrafts && pr.isDraft) return false;
   if (filters.onlyMine) {
     if (!viewer) return false;
-    if (pr.author?.login !== viewer) return false;
+    if (!isMine) return false;
   }
   if (filters.failingOnly) {
-    const status = deriveStatus(pr);
-    if (status.overall !== "failure" && status.overall !== "changes_requested") {
-      return false;
-    }
+    if (!viewer || isMine || pr.isDraft) return false;
+    if ((pr.viewerActiveReviews?.totalCount ?? 0) > 0) return false;
+    if (pr.reviewDecision === "APPROVED") return false;
   }
   if (filters.needsReview) {
     if (pr.isDraft) return false;

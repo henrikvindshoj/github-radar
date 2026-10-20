@@ -106,26 +106,48 @@ test('opening loads one page per repo with four workers, then resumes each curso
   assert.equal(calls.length,14);assert.ok(calls.slice(7).every(c=>c.page===1&&!c.initial));
 });
 
-test('all initial workers resume after the tab hides midway through warmup', async () => {
-  const {runInitialBurst}=await import('../src/lib/rollingRefresh.ts');
-  const {waitForVisibility}=await import('../src/lib/githubRequest.ts');
-  const document=new EventTarget() as EventTarget & {hidden:boolean};document.hidden=false;
-  Object.defineProperty(globalThis,'document',{value:document,configurable:true});
-  const releases:Array<()=>void>=[];const started:number[]=[];
-  const targets=Array.from({length:7},(_,i)=>({key:String(i),create:()=>async()=>{
-    started.push(i);if(i<4)await new Promise<void>(resolve=>releases.push(resolve));return {done:true};
+test('warmup and remaining pages continue when the tab hides midway', { timeout: 1000 }, async (t) => {
+  const { runInitialBurst } = await import('../src/lib/rollingRefresh.ts');
+  const { createGitHubTransport } = await import('../src/lib/githubRequest.ts');
+  const document = Object.assign(new EventTarget(), { hidden: false });
+  Object.defineProperty(globalThis, 'document', { value: document, configurable: true });
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(new Error('Background requests stalled while hidden')), 500);
+  const signal = AbortSignal.any([t.signal, deadline.signal]);
+  const releases: Array<() => void> = [];
+  const starts: number[] = [];
+  let now = 0;
+  const request = createGitHubTransport({
+    now: () => now, wait: async ms => { now += ms; },
+    fetch: async () => {
+      starts.push(now);
+      if (starts.length <= 4) await new Promise<void>(resolve => releases.push(resolve));
+      return new Response('{}');
+    },
+  });
+  const targets = Array.from({ length: 7 }, (_, i) => ({ key: String(i), create() {
+    let page = 0;
+    return async (signal: AbortSignal, initial = false) => {
+      await request('url', {}, 'token', signal, initial);
+      return { done: ++page === 2 };
+    };
   }}));
-  const controller=new AbortController();
   try {
-    const warmup=runInitialBurst(targets,{signal:controller.signal,onUpdate:()=>{},beforeRequest:()=>waitForVisibility(controller.signal)});
-    while(releases.length<4)await Promise.resolve();
-    document.hidden=true;for(const release of releases)release();
-    // The workers reserve their next targets, then each registers an independent visibility wait.
-    for(let i=0;i<8;i++)await Promise.resolve();
-    assert.equal(started.length,4);
-    document.hidden=false;document.dispatchEvent(new Event('visibilitychange'));
-    await warmup;assert.deepEqual(started,[0,1,2,3,4,5,6]);
-  } finally {controller.abort();Reflect.deleteProperty(globalThis,'document');}
+    const options = { signal, onUpdate: () => {}, now: () => now, wait: async (ms: number) => { now += ms; } };
+    const warmup = runInitialBurst(targets, options);
+    for (let i = 0; i < 100 && releases.length < 4; i++) await Promise.resolve();
+    assert.equal(releases.length, 4);
+    assert.deepEqual(starts, [0, 250, 500, 750]);
+    document.hidden = true;
+    for (const release of releases) release();
+    const pending = await warmup;
+    assert.equal(starts.length, 7);
+    assert.ok(starts.slice(1).every((start, i) => start - starts[i] >= 250));
+    await runSweep(pending, options);
+    assert.equal(starts.length, 14);
+    assert.ok(starts.slice(7).every((start, i) => start - starts[i + 6] >= 1000));
+    assert.equal(document.hidden, true);
+  } finally { clearTimeout(timer); Reflect.deleteProperty(globalThis, 'document'); }
 });
 
 test('partial refresh updates cards in place and appends new IDs without page-by-page reshuffling', async () => {

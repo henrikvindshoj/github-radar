@@ -137,7 +137,7 @@ The list is truncated to everything **up to and including the first run that rea
 ## Architecture
 
 - Single-page React app, no router
-- TanStack Query for caching; one paced rolling queue refreshes the active view (paused on hidden tabs)
+- TanStack Query for caching; one paced rolling queue refreshes the active view (including hidden browser tabs)
 - Lightweight count queries followed by 25-PR cursor pages, rotated across repos; per-repo errors are isolated
 - Status derivation lives in [`src/lib/status.ts`](src/lib/status.ts) and drives the colored status bar on each card
 
@@ -153,7 +153,7 @@ The list is truncated to everything **up to and including the first run that rea
 
 ## Rolling refresh
 
-The default interval is **10 minutes**. On opening either view, Radar warms up with up to four targets in parallel: the first 25 open PRs per repository or the configured pipeline history. It then continues every remaining page in the background. Later sweeps count open PRs first and rotate 25-PR pages across repositories until all finish. If a sweep takes longer than the interval, the next starts immediately; otherwise it waits the remaining time. GitHub rate limits can delay progress. There is no 100-PR total cap.
+The default interval is **10 minutes**. On opening either view, Radar warms up with up to four targets in parallel: the first 25 open PRs per repository or the configured pipeline history. It then continues every remaining page in the background. Later sweeps count open PRs first and rotate 25-PR pages across repositories until all finish. If a sweep takes longer than the interval, the next starts immediately; otherwise it waits the remaining time. GitHub rate limits can delay progress. There is no 100-PR total cap. Rolling refresh continues when you switch browser tabs, with the same request pacing and rate-limit handling. Browsers can still throttle or suspend background tabs; returning to Radar wakes the scheduler to check whether the next sweep is due.
 
 Existing cards stay visible during refresh. Partial pages update cards in place; counts never clear cached cards. New data updates them; closed PRs disappear after that repository finishes loading. Failed pages retain existing data. **Refresh** queues a sweep; **Off** stops periodic refresh. Filters and interval choices are remembered in this browser.
 

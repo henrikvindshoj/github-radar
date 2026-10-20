@@ -30,7 +30,7 @@ function Toggle({ label, active, onToggle, disabled, title }: ToggleProps) {
           : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800")
       }
     >
-      {label}
+      {label}: {active ? "On" : "Off"}
     </button>
   );
 }
@@ -76,7 +76,8 @@ export function FilterBar({ filters, onChange, viewerKnown }: FilterBarProps) {
         label="Needs attention"
         active={filters.failingOnly}
         onToggle={() => set({ failingOnly: !filters.failingOnly })}
-        title="Show only PRs with failing checks or changes requested"
+        disabled={!viewerKnown}
+        title="Show other people's non-draft PRs awaiting review, excluding those you have already approved or requested changes on"
       />
       <Toggle
         label="Needs review"

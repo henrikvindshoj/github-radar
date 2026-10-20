@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { waitForVisibility } from '../lib/githubRequest';
 import { abortIfNeeded, nextSweepDelay, runSweep, runInitialBurst, type RollingTarget, type RollingUpdate } from '../lib/rollingRefresh';
 
 export type TargetState = RollingUpdate & { complete?: boolean; updatedAt?: number };
@@ -59,14 +58,13 @@ export function useRollingRefresh({ targets, interval, token, prepare, onComplet
         signal.addEventListener('abort', cancel, { once: true });
       });
     }
-    async function visible() { await waitForVisibility(signal); }
     const visibilityChange = () => wake.current();
     document.addEventListener('visibilitychange', visibilityChange);
     async function loop() {
       let selected = targets;
       let firstSweep = initialBurst;
       while (!signal.aborted) {
-        await visible(); abortIfNeeded(signal);
+        abortIfNeeded(signal);
         setBusy(true);
         const start = Date.now();
         selected = selected.filter(t => !suspended.has(t.key));
@@ -75,9 +73,9 @@ export function useRollingRefresh({ targets, interval, token, prepare, onComplet
         if (firstSweep) {
           firstSweep = false;
           for (const key of keys) update(key, { progress: { loaded: 0, counting: false } });
-          selected = await runInitialBurst(selected, { signal, onUpdate: update, beforeRequest: visible });
+          selected = await runInitialBurst(selected, { signal, onUpdate: update });
         } else await prepareRef.current?.(keys, signal, update);
-        await runSweep(selected, { signal, onUpdate: update, beforeRequest: visible });
+        await runSweep(selected, { signal, onUpdate: update });
         abortIfNeeded(signal); setBusy(false);
         while (!signal.aborted) {
           if (pendingAll.current) {

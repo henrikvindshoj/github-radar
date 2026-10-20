@@ -31,3 +31,24 @@ test('drafts, missing approval and requested changes have no approval marker', (
     assert.equal(status.approved,false); assert.equal(status.readyToMerge,false);
   }
 });
+
+test('personal approval does not satisfy outstanding aggregate review requirements', () => {
+  for (const reviewDecision of ['REVIEW_REQUIRED', 'CHANGES_REQUESTED', null] as const) {
+    const status = deriveStatus(pr('SUCCESS', { reviewDecision, viewerApprovals: { totalCount: 1 } }));
+    assert.equal(status.approvedByViewer, true);
+    assert.equal(status.approved, false);
+    assert.equal(status.readyToMerge, false);
+    assert.notEqual(status.overall, 'success');
+  }
+});
+test('personal approval requires an active viewer approval independently of draft or aggregate approval', () => {
+  for (const viewerApprovals of [undefined, { totalCount: 0 }]) {
+    const status = deriveStatus(pr('SUCCESS', { viewerApprovals }));
+    assert.equal(status.approvedByViewer, false);
+    assert.equal(status.readyToMerge, true);
+  }
+  const draft = deriveStatus(pr('SUCCESS', { isDraft: true, viewerApprovals: { totalCount: 1 } }));
+  assert.equal(draft.approvedByViewer, true);
+  assert.equal(draft.approved, false);
+  assert.equal(draft.readyToMerge, false);
+});

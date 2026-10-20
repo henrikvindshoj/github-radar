@@ -4,8 +4,66 @@ import { fetchPullRequestCounts, fetchPullRequestPage, fetchViewer, GitHubApiErr
 import { createGitHubTransport } from "../src/lib/githubRequest.ts";
 import { fetchRepoPipeline } from "../src/lib/githubActions.ts";
 import { runInitialBurst, runSweep, type RollingTarget } from "../src/lib/rollingRefresh.ts";
+import { matchesFilters, defaultFilters } from "../src/lib/filters.ts";
 
 const response = (body: unknown, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers });
+
+test("archived repositories return no PRs or counts and team searches exclude archives", async () => {
+  const original = globalThis.fetch;
+  const searches: string[] = [];
+  globalThis.fetch = async (_input, init) => {
+    const { query, variables } = JSON.parse(String(init?.body));
+    if (query.includes('PullRequestCounts')) {
+      searches.push(variables.q1);
+      return response({ data: { r0: { isArchived: true, pullRequests: { totalCount: 7 } }, r1: { issueCount: 0 } } });
+    }
+    if (query.includes('TeamPRPage')) {
+      searches.push(variables.q);
+      return response({ data: { search: { nodes: [], issueCount: 0, pageInfo: { hasNextPage: false, endCursor: null } } } });
+    }
+    return response({ data: { repository: { isArchived: true, nameWithOwner: 'o/archive', url: 'https://github.com/o/archive',
+      pullRequests: { nodes: [{ id: 'old-pr' }], totalCount: 7, pageInfo: { hasNextPage: true, endCursor: 'next' } } } } });
+  };
+  try {
+    const counts = await fetchPullRequestCounts([{ owner: 'o', name: 'archive' }, { owner: 'o', name: 'team', members: ['author'] }], 'captured');
+    assert.deepEqual(counts, { 'o/archive': 0, 'o/team': 0 });
+    for (const members of [undefined, ['author']]) {
+      const page = await fetchPullRequestPage('o', 'archive', null, members, 'captured', undefined, true);
+      assert.deepEqual(page.nodes, []);
+      assert.equal(page.totalCount, 0);
+      assert.deepEqual(page.pageInfo, { hasNextPage: false, endCursor: null });
+    }
+    assert.equal(searches.length, 2);
+    for (const query of searches) assert.match(query, /\barchived:false\b/);
+  } finally { globalThis.fetch = original; }
+});
+
+test("repository and team PR pages fetch only the viewer's undismissed decisive reviews", async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    const { query, variables } = JSON.parse(String(init?.body));
+    assert.equal(variables.viewer, 'me');
+    assert.equal(variables.viewerKnown, true);
+    assert.match(query, /reviews\(author: \$viewer, states: \[APPROVED, CHANGES_REQUESTED\]\) @include\(if: \$viewerKnown\)/);
+    assert.match(query, /viewerApprovals: reviews\(author: \$viewer, states: \[APPROVED\]\) @include\(if: \$viewerKnown\)\s*\{\s*totalCount\s*\}/);
+    // GitHub filters out dismissed, comment-only, pending and other users' reviews.
+    const nodes = [0, 1].map(totalCount => ({ id: String(totalCount),
+      __typename: 'PullRequest', isDraft: false, reviewDecision: 'CHANGES_REQUESTED',
+      mergeable: 'MERGEABLE', commits: { nodes: [] }, viewerActiveReviews: { totalCount }, viewerApprovals: { totalCount } }));
+    const page = { nodes, issueCount: 2, totalCount: 2,
+      pageInfo: { hasNextPage: false, endCursor: null } };
+    return response({ data: query.includes('TeamPRPage') ? { search: page }
+      : { repository: { nameWithOwner: 'o/r', url: '', pullRequests: page } } });
+  };
+  try {
+    for (const members of [undefined, ['author']]) {
+      const page = await fetchPullRequestPage('o', 'r', null, members, 'captured', undefined, true, 'me');
+      assert.deepEqual(page.nodes.map(pr => pr.viewerApprovals?.totalCount), [0, 1]);
+      const visible = page.nodes.filter(pr => matchesFilters(pr, { ...defaultFilters, failingOnly: true }, 'me'));
+      assert.deepEqual(visible.map(pr => pr.id), ['0']);
+    }
+  } finally { globalThis.fetch = original; }
+});
 
 test("pipeline warmup bursts both nested REST requests, then refreshes serially", async () => {
   const original = globalThis.fetch;
@@ -166,27 +224,36 @@ test("secondary limits ignore primary reset unless the primary budget is exhaust
   assert.deepEqual(starts, [1000, 61000]);
 });
 
-test("transport pauses nested HTTP work while hidden and releases aborted visibility waits", async () => {
-  const events = new EventTarget();
-  const fakeDocument = Object.assign(events, { hidden: true });
+test("hidden-tab requests continue with pacing, cooldown and cancellation", { timeout: 1000 }, async (t) => {
+  const fakeDocument = Object.assign(new EventTarget(), { hidden: true });
   Object.defineProperty(globalThis, "document", { value: fakeDocument, configurable: true });
-  let starts = 0;
-  const request = createGitHubTransport({ fetch: async () => { starts++; return response({ ok: true }); } });
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(new Error('Background requests stalled while hidden')), 500);
+  const signal = AbortSignal.any([t.signal, deadline.signal]);
+  let now = 0;
+  const starts: number[] = [];
+  const request = createGitHubTransport({
+    now: () => now,
+    wait: async milliseconds => { now += milliseconds; },
+    fetch: async () => {
+      starts.push(now);
+      return starts.length === 1
+        ? response({ message: "secondary rate limit" }, 403, { "retry-after": "60" })
+        : response({ ok: true });
+    },
+  });
   try {
+    await assert.rejects(request("url", {}, "token", signal), (error: GitHubApiError) => error.retryable && error.cooldownUntil === 60000);
+    await request("url", {}, "token", signal);
+    await request("url", {}, "token", signal);
+    assert.deepEqual(starts, [0, 60000, 61000]);
     const controller = new AbortController();
     const pending = request("url", {}, "token", controller.signal);
-    await Promise.resolve(); await Promise.resolve();
-    assert.equal(starts, 0);
     controller.abort();
     await assert.rejects(pending, { name: "AbortError" });
-    const resumed = request("url", {}, "token");
-    await Promise.resolve(); await Promise.resolve();
-    assert.equal(starts, 0);
-    fakeDocument.hidden = false;
-    events.dispatchEvent(new Event("visibilitychange"));
-    await resumed;
-    assert.equal(starts, 1);
-  } finally { Reflect.deleteProperty(globalThis, "document"); }
+    assert.equal(starts.length, 3);
+    assert.equal(fakeDocument.hidden, true);
+  } finally { clearTimeout(timer); Reflect.deleteProperty(globalThis, "document"); }
 });
 
 test("public APIs batch lightweight counts and page beyond 100 with captured tokens", async () => {
