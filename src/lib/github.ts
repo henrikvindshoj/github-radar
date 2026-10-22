@@ -38,6 +38,7 @@ export interface PullRequestNode {
   id: string;
   number: number;
   title: string;
+  body?: string;
   url: string;
   isDraft: boolean;
   createdAt: string;
@@ -86,6 +87,7 @@ const PR_FIELDS = `
           id
           number
           title
+          body
           url
           isDraft
           createdAt
