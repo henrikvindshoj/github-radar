@@ -39,26 +39,20 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Create dedicated review user
+        run: |
+          sudo useradd --create-home --shell /bin/bash codex-review
+          sudo chmod 755 /home/codex-review
+          if sudo -u codex-review -- sudo -n true 2>/dev/null; then
+            echo "::error::The review user must not have sudo access."
+            exit 1
+          fi
+
       - name: Prepare isolated diff
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/codex-review-input"
-          git diff --no-ext-diff --no-textconv --unified=0 "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/codex-review-input/changes.diff"
-          # Remove the checkout so Codex cannot read unrelated repository files.
-          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
-
-      - name: Review changes with Codex
-        id: codex
-        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY_PR_REVIEW }}
-          permission-profile: ":read-only"
-          safety-strategy: drop-sudo
-          working-directory: ${{ runner.temp }}/codex-review-input
-          codex-args: '["--skip-git-repo-check"]'
-          output-schema: |
+          REVIEW_SCHEMA: >-
             {
               "type": "object",
               "properties": {
@@ -80,6 +74,27 @@ jobs:
               "required": ["findings"],
               "additionalProperties": false
             }
+        run: |
+          mkdir -p "$RUNNER_TEMP/codex-review-input"
+          git diff --no-ext-diff --no-textconv --unified=0 "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/codex-review-input/changes.diff"
+          printf '%s\n' "$REVIEW_SCHEMA" > "$RUNNER_TEMP/codex-review-input/schema.json"
+          chmod 755 "$RUNNER_TEMP/codex-review-input"
+          chmod 644 "$RUNNER_TEMP/codex-review-input/"*
+          sudo -u codex-review -- test -r "$RUNNER_TEMP/codex-review-input/changes.diff"
+          sudo -u codex-review -- test -r "$RUNNER_TEMP/codex-review-input/schema.json"
+          # Remove the checkout so Codex cannot read unrelated repository files.
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+
+      - name: Review changes with Codex
+        id: codex
+        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY_PR_REVIEW }}
+          permission-profile: ":read-only"
+          safety-strategy: unprivileged-user
+          codex-user: codex-review
+          working-directory: ${{ runner.temp }}/codex-review-input
+          output-schema-file: ${{ runner.temp }}/codex-review-input/schema.json
           prompt: |
             Review only changes.diff in the working directory. It contains the
             PR's changed hunks with no surrounding context. Do not read other
