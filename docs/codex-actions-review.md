@@ -11,7 +11,7 @@ integration's automatic review.
 1. Create an OpenAI API key at https://platform.openai.com/api-keys with access
    to the Responses API and funded API billing.
 2. In this repository, open **Settings > Secrets and variables > Actions**.
-   Add a repository secret named `OPENAI_API_KEY` containing the API key.
+   Add a repository secret named `OPENAI_API_KEY_PR_REVIEW` containing the API key.
    Do not commit or paste the key into a PR.
 3. Merge the workflow PR. Ensure GitHub Actions is enabled and repository or
    organization policy allows the actions used in the workflow.
