@@ -31,7 +31,7 @@ Create one at [github.com/settings/personal-access-tokens/new](https://github.co
 
 ## Configuring repos
 
-Open the **Config** button in the header to edit the JSON directly in the app. It is validated by Zod ([`src/config/schema.ts`](src/config/schema.ts)) and saved to this browser's `localStorage`, so each user keeps their own setup. "Reset to default" restores the bundled config.
+Click **Config** in the header to edit the configuration JSON directly in the app. It is validated by Zod ([`src/config/schema.ts`](src/config/schema.ts)) and saved to this browser's `localStorage`, so each user keeps their own setup. "Reset to default" restores the bundled config.
 
 The bundled default lives in [`src/config/repos.json`](src/config/repos.json) and is used as the seed whenever a browser has no saved config:
 
