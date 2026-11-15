@@ -87,7 +87,7 @@ Per-repo `pipeline` fields:
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `workflow` | _(required per repo)_ | Workflow display name or file name to match (e.g. `Build and publish main` or `build-and-publish.yml`) |
-| `branch` | `main` (from `pipelineDefaults`) | Branch whose runs to track |
+| `branch` | `main` (from `pipelineDefaults`) | Git branch whose workflow runs are tracked |
 | `runsToShow` | `10` (from `pipelineDefaults`) | Upper bound of recent runs to fetch (see truncation note below) |
 | `prodEnvironment` | `PROD` (from `pipelineDefaults`) | Display label for the production target |
 | `enabled` | `true` | Set to `false` to hide this repo from the Pipelines view |
