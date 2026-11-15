@@ -85,6 +85,29 @@ jobs:
           # Remove the checkout so Codex cannot read unrelated repository files.
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
 
+      - name: Block diffs containing potential credentials
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          diff = Path('/tmp/codex-review-input/changes.diff').read_text(errors='replace')
+          patterns = [
+              r'\bsk-[A-Za-z0-9_-]{10,}\b',
+              r'\b(?:gh[pousr]_[A-Za-z0-9_]{10,}|github_pat_[A-Za-z0-9_]{10,})\b',
+              r'\b(?:AKIA|ASIA)[A-Z0-9]{16}\b',
+              r'-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----',
+              r'(?i)\bbearer\s+[A-Za-z0-9._~+/-]{12,}',
+              r'''(?i)\b(?:api[_-]?key|secret|token|password|client[_-]?secret)\b["']?\s*[:=]\s*["']?[A-Za-z0-9_./+=-]{8,}''',
+          ]
+          if any(re.search(pattern, diff) for pattern in patterns):
+              # Never print the matching text, path, or line: it may be a secret.
+              print('::error::Potential credential detected in the PR diff. Codex review was not started. Remove the credential and rotate it if needed.')
+              raise SystemExit(1)
+          print('Credential pattern scan passed.')
+          PY
+
       - name: Review changes with Codex
         id: codex
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
@@ -162,13 +185,14 @@ jobs:
               if (!exactKeys(finding, ['severity', 'path', 'line', 'explanation']) ||
                   !['P0', 'P1', 'P2', 'P3'].includes(finding.severity) ||
                   typeof finding.path !== 'string' || finding.path.length > 300 ||
-                  finding.path.startsWith('/') || finding.path.split('/').includes('..') ||
+                  !/^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(finding.path) ||
+                  finding.path.split('/').some(part => part === '.' || part === '..') ||
                   !Number.isSafeInteger(finding.line) || finding.line < 1 ||
                   typeof finding.explanation !== 'string' || finding.explanation.length > 4000) {
                 throw new Error('Invalid finding');
               }
               return finding.severity + ' - ' + sanitize(finding.path) +
-                ' line ' + finding.line + ': ' + sanitize(finding.explanation);
+                ' line ' + finding.line + ': Potential issue flagged for human inspection. Model explanation withheld.';
             });
             const safeFeedback = findings.length
               ? findings.join('\n\n')
