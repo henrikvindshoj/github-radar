@@ -5,6 +5,8 @@ A GoCD-inspired dashboard for personal use. Two views, switchable from the heade
 - **Pull requests** — open PRs across a fixed list of repos, grouped by repo, with per-PR status (CI checks, review decision, mergeability).
 - **Pipelines** — recent GitHub Actions workflow runs across repos, so you can see at a glance which changes are deployed to PROD and which are still **awaiting deployment** or **running**.
 
+
+
 Fully static React + TypeScript SPA. Talks directly to the GitHub GraphQL + REST APIs from the browser using a personal access token stored in `localStorage`. The monitored repos/pipelines are configured per browser and also stored in `localStorage`, so different users can run their own setup independently. No backend.
 
 ## Setup
@@ -14,6 +16,7 @@ npm install
 
 npm run dev
 ```
+
 
 Open the printed URL, paste a fine-grained GitHub PAT into the first-run dialog, and you're in.
 
