@@ -23,7 +23,8 @@ integration's automatic review.
    the existing smoke-test PR #27.
 6. Check **Actions > Codex PR review**. A successful run should publish a
    **Codex review** comment identifying the reviewed commit, including
-   "No actionable findings." when appropriate.
+   "No actionable findings." when appropriate. Confirm that the comment’s
+   reviewed commit matches the latest commit on the PR.
 
 API usage is billed to the API project associated with the key, separately
 from ChatGPT subscriptions. Configure a project budget and usage alerts.
