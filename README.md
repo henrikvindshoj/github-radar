@@ -11,6 +11,7 @@ Fully static React + TypeScript SPA. Talks directly to the GitHub GraphQL + REST
 
 ```bash
 npm install
+
 npm run dev
 ```
 
