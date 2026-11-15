@@ -33,10 +33,16 @@ from ChatGPT subscriptions. Configure a project budget and usage alerts.
 - Before Codex runs, the workflow generates a diff with zero lines of surrounding
   context and removes the checkout. Codex receives only that diff, so reviews may
   miss issues that require surrounding code to establish.
+- Before invoking Codex, a mandatory pattern scan rejects diffs containing common
+  OpenAI/GitHub/AWS credentials, private keys, bearer tokens, and credential
+  assignments. Matching text is never logged. This scan is heuristic and does
+  not detect every secret or other confidential data.
 - Codex returns structured JSON with at most 10 findings. A separate publishing
   job rejects malformed or oversized output, validates finding fields, redacts
   common credential patterns, and renders bounded plain text without links,
-  mentions, HTML, or Markdown from the model.
+  mentions, HTML, or Markdown from the model. Published findings contain only
+  validated severity, a restricted file path, and a positive line number with
+  fixed template text. Model-written explanations are not published.
 - Feedback is posted by a separate job with `pull-requests: write`. Validation
   runs on a fresh runner, rather than executing a sanitizer after Codex in the
   same job. Model output is still untrusted; these checks limit formatting and
