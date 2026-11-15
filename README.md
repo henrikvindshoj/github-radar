@@ -18,7 +18,7 @@ Open the printed URL, paste a fine-grained GitHub PAT into the first-run dialog,
 
 ### Required PAT scopes
 
-Use a **fine-grained PAT** scoped to only the repos in your configuration. Repository permissions:
+Use a **fine-grained PAT** scoped to only the repos in your configuration. Repository permissions :
 
 - `Contents: Read`
 - `Pull requests: Read`
