@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 
-Open the printed URL, paste a fine-grained GitHub PAT into the first-run dialog, and you're in.
+Open the URL printed by `npm run dev` and paste a fine-grained GitHub PAT into the first-run dialog.
 
 ### Required PAT scopes
 
