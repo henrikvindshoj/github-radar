@@ -29,7 +29,7 @@ from ChatGPT subscriptions. Configure a project budget and usage alerts.
 - Fork PRs and drafts are skipped. The Codex action also requires the triggering
   user to have repository write access by default; bot bypasses are not enabled.
 - The review job has `contents: read`, uses a read-only Codex permission
-  profile with `drop-sudo`, and does not install or run project dependencies.
+  profile under a dedicated `codex-review` user without sudo access, and does not install or run project dependencies.
 - Before Codex runs, the workflow generates a diff with zero lines of surrounding
   context and removes the checkout. Codex receives only that diff, so reviews may
   miss issues that require surrounding code to establish.
