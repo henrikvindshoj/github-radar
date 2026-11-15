@@ -25,10 +25,10 @@ jobs:
     steps:
       - name: Check API key configuration
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY_PR_REVIEW: ${{ secrets.OPENAI_API_KEY_PR_REVIEW }}
         run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::error::Add OPENAI_API_KEY under Settings > Secrets and variables > Actions."
+          if [ -z "$OPENAI_API_KEY_PR_REVIEW" ]; then
+            echo "::error::Add OPENAI_API_KEY_PR_REVIEW under Settings > Secrets and variables > Actions."
             exit 1
           fi
 
@@ -43,7 +43,7 @@ jobs:
         id: codex
         uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
         with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY_PR_REVIEW }}
           permission-profile: ":read-only"
           safety-strategy: drop-sudo
           prompt: |
