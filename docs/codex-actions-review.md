@@ -13,11 +13,15 @@ integration's automatic review.
 2. In this repository, open **Settings > Secrets and variables > Actions**.
    Add a repository secret named `OPENAI_API_KEY_PR_REVIEW` containing the API key.
    Do not commit or paste the key into a PR.
-3. Merge the workflow PR. Ensure GitHub Actions is enabled and repository or
+3. Under **Settings > Secrets and variables > Actions > Variables**, add a
+   repository variable named `CODEX_EXTERNAL_REVIEW_OPT_IN` with value `true`.
+   This explicitly enables sending PR diffs to OpenAI for review. Without it,
+   the review job is skipped.
+4. Merge the workflow PR. Ensure GitHub Actions is enabled and repository or
    organization policy allows the actions used in the workflow.
-4. Open a non-draft PR, push a commit to an existing PR, or close and reopen
+5. Open a non-draft PR, push a commit to an existing PR, or close and reopen
    the existing smoke-test PR #27.
-5. Check **Actions > Codex PR review**. A successful run should publish a
+6. Check **Actions > Codex PR review**. A successful run should publish a
    **Codex review** comment identifying the reviewed commit, including
    "No actionable findings." when appropriate.
 
@@ -42,7 +46,8 @@ from ChatGPT subscriptions. Configure a project budget and usage alerts.
   common credential patterns, and renders bounded plain text without links,
   mentions, HTML, or Markdown from the model. Published findings contain only
   validated severity, a restricted file path, and a positive line number with
-  fixed template text. Model-written explanations are not published.
+  fixed template text. Each location must map to an added line in the PR's
+  current diff; locations without available patch data are rejected. Model-written explanations are not published.
 - Feedback is posted by a separate job with `pull-requests: write`. Validation
   runs on a fresh runner, rather than executing a sanitizer after Codex in the
   same job. Model output is still untrusted; these checks limit formatting and
