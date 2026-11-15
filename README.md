@@ -90,7 +90,7 @@ Per-repo `pipeline` fields:
 | `branch` | `main` (from `pipelineDefaults`) | Branch whose runs to track |
 | `runsToShow` | `10` (from `pipelineDefaults`) | Upper bound of recent runs to fetch (see truncation note below) |
 | `prodEnvironment` | `PROD` (from `pipelineDefaults`) | Display label for the production target |
-| `enabled` | `true` | Set to `false` to hide this repo from the Pipelines view |
+| `enabled` | `true` | Set `pipeline.enabled` to `false` to hide this repository from the Pipelines view |
 
 A repo appears on the Pipelines view only if it has a `workflow` set and is not disabled. You can still put a `workflow` in `pipelineDefaults` as a fallback if most repos share the same name.
 
